@@ -1,0 +1,321 @@
+/* ---------------------------------------------------------------------------
+   Impostoor design tokens — "midnight card table"
+   Deep ink-violet room, cream lettering, impostor coral, hint gold.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #14101d;
+  --bg-raised: #1f1830;
+  --surface: #241b36;
+  --surface-2: #2e2344;
+  --line: color-mix(in oklab, #f4ede3 12%, transparent);
+  --text: #f4ede3;
+  --muted: #a396ba;
+  --coral: #ff5a5f;
+  --coral-press: #e04a52;
+  --gold: #ebb44e;
+  --teal: #4fd1a5;
+
+  --radius: 18px;
+  --radius-lg: 26px;
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+
+  --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --font-body:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  background-image:
+    radial-gradient(90rem 40rem at 50% -20rem, #2a1f42 0%, transparent 60%),
+    radial-gradient(50rem 30rem at 110% 110%, #23122a 0%, transparent 55%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Native-app feel: no rubber-band scroll chaining, no tap highlight */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* --------------------------------- layout -------------------------------- */
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 30rem);
+  margin-inline: auto;
+  padding: calc(env(safe-area-inset-top) + 1.25rem) 1.25rem
+    calc(env(safe-area-inset-bottom) + 1.25rem);
+}
+
+.screen-body {
+  flex: 1;
+}
+
+/* Bottom-anchored primary action, in thumb reach */
+.screen-footer {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+  padding-top: 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+/* -------------------------------- buttons -------------------------------- */
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.4rem;
+  padding: 0.8rem 1.4rem;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 650;
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--coral);
+  color: #23090c;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:active {
+  background: var(--coral-press);
+}
+
+.btn-primary:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.btn-quiet {
+  color: var(--muted);
+  min-height: 2.75rem;
+  font-size: 1rem;
+}
+
+/* --------------------------------- cards --------------------------------- */
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.2rem;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* -------------------------------- dialogs -------------------------------- */
+
+dialog {
+  border: 0;
+  padding: 0;
+  margin: auto;
+  background: transparent;
+  color: inherit;
+  max-width: min(100vw - 1.5rem, 28rem);
+  width: 100%;
+  max-height: calc(100dvh - 2rem);
+}
+
+dialog .dialog-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.4rem 1.3rem;
+}
+
+/* Top-layer entry/exit animation (display + overlay must be transitioned) */
+dialog[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.96);
+  }
+}
+
+dialog {
+  opacity: 0;
+  transform: translateY(1.5rem) scale(0.96);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    display 0.28s allow-discrete,
+    overlay 0.28s allow-discrete;
+}
+
+dialog::backdrop {
+  background: rgb(8 5 14 / 0);
+  transition:
+    background-color 0.28s ease,
+    display 0.28s allow-discrete,
+    overlay 0.28s allow-discrete;
+}
+
+dialog[open]::backdrop {
+  background: rgb(8 5 14 / 0.72);
+
+  @starting-style {
+    background: rgb(8 5 14 / 0);
+  }
+}
+
+/* --------------------------- view transitions ---------------------------- */
+
+::view-transition-group(root) {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.3, 0.9, 0.4, 1);
+}
+
+@keyframes slide-to-left {
+  to {
+    transform: translateX(-28%);
+    opacity: 0;
+  }
+}
+@keyframes slide-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes slide-to-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-28%);
+    opacity: 0;
+  }
+}
+
+html[data-nav-dir='forward']::view-transition-old(root) {
+  animation-name: slide-to-left;
+}
+html[data-nav-dir='forward']::view-transition-new(root) {
+  animation-name: slide-from-right;
+}
+html[data-nav-dir='backward']::view-transition-old(root) {
+  animation-name: slide-to-right;
+}
+html[data-nav-dir='backward']::view-transition-new(root) {
+  animation-name: slide-from-left;
+}
+
+/* ---------------------------- reduced motion ----------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+
+  dialog {
+    transform: none;
+    transition-duration: 0.1s;
+  }
+
+  @starting-style {
+    dialog[open] {
+      transform: none;
+    }
+  }
+
+  .btn,
+  .btn:active {
+    transition: none;
+    transform: none;
+  }
+}
