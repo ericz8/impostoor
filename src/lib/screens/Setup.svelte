@@ -1,13 +1,24 @@
 <script lang="ts">
-  import { game, MIN_PLAYERS } from '../game.svelte'
+  import { game, CUSTOM_ID, MIN_PLAYERS } from '../game.svelte'
   import { pwa } from '../pwa.svelte'
   import { categories } from '../words'
   import InstallSheet from '../InstallSheet.svelte'
+  import CustomWordsSheet from '../CustomWordsSheet.svelte'
   import Scoreboard from '../Scoreboard.svelte'
 
   let nameInput = $state('')
   let error = $state<string | null>(null)
   let installSheet = $state<InstallSheet>()
+  let customSheet = $state<CustomWordsSheet>()
+
+  function toggleCustom() {
+    // Nothing to include yet — jump straight to the editor instead.
+    if (game.customWords.length === 0) {
+      customSheet?.open()
+    } else {
+      game.toggleCategory(CUSTOM_ID)
+    }
+  }
 
   function submitPlayer(event: SubmitEvent) {
     event.preventDefault()
@@ -21,6 +32,9 @@
 
   const startHint = $derived.by(() => {
     if (game.selectedCategories.length === 0) return 'Pick at least one category.'
+    if (game.wordPool.length === 0) {
+      return 'Your words list is empty — add some or pick another category.'
+    }
     if (game.players.length < MIN_PLAYERS) {
       const missing = MIN_PLAYERS - game.players.length
       return `Add ${missing} more player${missing === 1 ? '' : 's'} to start.`
@@ -80,6 +94,35 @@
             {category.name}
           </button>
         {/each}
+        <div
+          class="cat-chip custom-chip"
+          class:selected={game.selectedCategories.includes(CUSTOM_ID)}
+        >
+          <button
+            class="custom-toggle"
+            aria-pressed={game.selectedCategories.includes(CUSTOM_ID)}
+            onclick={toggleCustom}
+          >
+            <span aria-hidden="true">✏️</span>
+            Your words{game.customWords.length > 0 ? ` (${game.customWords.length})` : ''}
+          </button>
+          <button
+            class="custom-edit"
+            aria-label="Edit your words"
+            onclick={() => customSheet?.open()}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+              <path
+                d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3ZM14 6l3 3"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -166,6 +209,7 @@
 </div>
 
 <InstallSheet bind:this={installSheet} />
+<CustomWordsSheet bind:this={customSheet} />
 
 <style>
   .topbar {
@@ -248,6 +292,34 @@
   .cat-chip[aria-pressed='true'] {
     background: color-mix(in oklab, var(--coral) 18%, var(--surface));
     border-color: var(--coral);
+  }
+
+  .custom-chip {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .custom-chip.selected {
+    background: color-mix(in oklab, var(--coral) 18%, var(--surface));
+    border-color: var(--coral);
+  }
+
+  .custom-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.7rem 0.55rem 0.95rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .custom-edit {
+    display: grid;
+    place-items: center;
+    align-self: stretch;
+    padding: 0 0.8rem 0 0.6rem;
+    border-left: 1px solid var(--line);
+    color: var(--gold);
   }
 
   .toggle-row {

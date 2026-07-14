@@ -30,7 +30,11 @@ interface SessionSnapshot {
 const SESSION_KEY = 'impostoor:session'
 const RECENT_KEY = 'impostoor:recent-players'
 const INTRO_KEY = 'impostoor:seen-intro'
+const CUSTOM_KEY = 'impostoor:custom-words'
 const MAX_RECENT = 12
+
+/** Pseudo-category id for user-authored words. */
+export const CUSTOM_ID = 'custom'
 
 export const MIN_PLAYERS = 3
 
@@ -57,9 +61,23 @@ class GameState {
   recentPlayers: string[] = $state([])
   imposterWins = $state(0)
   playerWins = $state(0)
+  customWords: WordEntry[] = $state([])
+
+  /** Every word the selected categories (incl. custom) contribute. */
+  readonly wordPool = $derived.by(() => {
+    const pool = categories
+      .filter((c) => this.selectedCategories.includes(c.id))
+      .flatMap((c) => c.words.map((entry) => ({ entry, categoryId: c.id })))
+    if (this.selectedCategories.includes(CUSTOM_ID)) {
+      pool.push(...this.customWords.map((entry) => ({ entry, categoryId: CUSTOM_ID })))
+    }
+    return pool
+  })
 
   readonly canStart = $derived(
-    this.players.length >= MIN_PLAYERS && this.selectedCategories.length >= 1,
+    this.players.length >= MIN_PLAYERS &&
+      this.selectedCategories.length >= 1 &&
+      this.wordPool.length > 0,
   )
 
   /** Recent players not already in the current lineup. */
@@ -75,12 +93,13 @@ class GameState {
 
   constructor() {
     this.recentPlayers = readJSON<string[]>(localStorage, RECENT_KEY) ?? []
+    this.customWords = readJSON<WordEntry[]>(localStorage, CUSTOM_KEY) ?? []
 
     const session = readJSON<SessionSnapshot>(sessionStorage, SESSION_KEY)
     if (session) {
       this.players = session.players
-      this.selectedCategories = session.selectedCategories.filter((id) =>
-        categories.some((c) => c.id === id),
+      this.selectedCategories = session.selectedCategories.filter(
+        (id) => id === CUSTOM_ID || categories.some((c) => c.id === id),
       )
       if (this.selectedCategories.length === 0) this.selectedCategories = ['animals']
       this.hintsOn = session.hintsOn
@@ -109,6 +128,7 @@ class GameState {
     }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(snapshot))
     localStorage.setItem(RECENT_KEY, JSON.stringify(this.recentPlayers))
+    localStorage.setItem(CUSTOM_KEY, JSON.stringify(this.customWords))
   }
 
   finishIntro() {
@@ -165,12 +185,26 @@ class GameState {
     }
   }
 
+  addCustomWord(rawWord: string, rawHint: string): string | null {
+    const word = rawWord.trim().replace(/\s+/g, ' ')
+    const hint = rawHint.trim()
+    if (!word) return 'Enter a word first.'
+    if (word.length > 40) return 'Keep words under 40 characters.'
+    if (this.customWords.some((w) => w.word.toLowerCase() === word.toLowerCase())) {
+      return `“${word}” is already on your list.`
+    }
+    this.customWords.push({ word, hint })
+    return null
+  }
+
+  removeCustomWord(word: string) {
+    this.customWords = this.customWords.filter((w) => w.word !== word)
+  }
+
   startGame() {
     if (!this.canStart) return
 
-    const pool: { entry: WordEntry; categoryId: string }[] = categories
-      .filter((c) => this.selectedCategories.includes(c.id))
-      .flatMap((c) => c.words.map((entry) => ({ entry, categoryId: c.id })))
+    const pool = this.wordPool
 
     // Avoid words already used this session, if any are left.
     const fresh = pool.filter(({ entry }) => !this.usedWords.includes(entry.word))

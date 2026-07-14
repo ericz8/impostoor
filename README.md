@@ -33,6 +33,6 @@ bun run scripts/make-icons.ts
 ## Storage model
 
 - **`sessionStorage`** — the per-tab session: players, selected categories, hint toggle, words already used this session, and the impostor-vs-players win tally.
-- **`localStorage`** — cross-session: recently used player names (quick-add) and the "seen intro" flag.
+- **`localStorage`** — cross-session: recently used player names (quick-add), custom words ("Your words" category), and the "seen intro" flag.
 
 Word lists with per-word impostor hints live in `src/lib/words.ts`.

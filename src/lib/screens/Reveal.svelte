@@ -9,6 +9,9 @@
 
   const round = $derived(game.round!)
   const category = $derived(getCategory(round.categoryId))
+  const categoryLabel = $derived(
+    category ? `${category.emoji} ${category.name}` : '✏️ Your words',
+  )
   const isImposter = $derived(selected === round.imposter)
 
   function openCard(player: string) {
@@ -47,8 +50,7 @@
 <div class="screen">
   <div class="screen-body">
     <p class="eyebrow">
-      {category?.emoji}
-      {category?.name} · {game.hintsOn ? 'hints on' : 'hints off'}
+      {categoryLabel} · {game.hintsOn ? 'hints on' : 'hints off'}
     </p>
     <h1 class="heading">Pass the phone around</h1>
     <p class="sub">Tap your name, peek at your role, keep your poker face.</p>
@@ -113,7 +115,7 @@
       {#if peeking}
         {#if isImposter}
           <span class="role imposter">You’re the impostor</span>
-          {#if game.hintsOn}
+          {#if game.hintsOn && round.hint}
             <span class="hint">Hint: {round.hint}</span>
           {:else}
             <span class="hint">No hint this round. Bluff hard.</span>
