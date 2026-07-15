@@ -28,6 +28,13 @@
         Play passes <strong>{round.clockwise ? 'clockwise' : 'counter-clockwise'}</strong>
       </p>
       <p class="how">One word or phrase each about the secret word, then vote.</p>
+      <ol class="order" aria-label="Speaking order">
+        {#each round.order as player, i (player)}
+          <li class="order-chip">
+            <span class="order-num" aria-hidden="true">{i + 1}</span>{player}
+          </li>
+        {/each}
+      </ol>
     </section>
 
     <section class="card win-card">
@@ -131,6 +138,41 @@
     color: var(--muted);
     font-size: 0.95rem;
     margin-top: 0.5rem;
+  }
+
+  .order {
+    list-style: none;
+    margin: 0.9rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+  }
+
+  .order-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem 0.35rem 0.4rem;
+    font-family: var(--font-display);
+    font-weight: 650;
+    font-size: 0.95rem;
+  }
+
+  .order-num {
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--gold);
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 
   .win-list {

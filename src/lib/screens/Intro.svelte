@@ -11,7 +11,7 @@
     <ol class="steps">
       <li>
         <h3>Pass the phone</h3>
-        <p>Each player secretly checks their role. Regular players see the secret word — the impostor only gets a vague hint.</p>
+        <p>Each player secretly checks their role. Regular players see the secret word — the impostor gets a vague hint at best.</p>
       </li>
       <li>
         <h3>Talk it out</h3>

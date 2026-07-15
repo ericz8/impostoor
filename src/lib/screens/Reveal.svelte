@@ -115,7 +115,7 @@
       {#if peeking}
         {#if isImposter}
           <span class="role imposter">You’re the impostor</span>
-          {#if game.hintsOn && round.hint}
+          {#if game.hintsOn && round.hintAllowed && round.hint}
             <span class="hint">Hint: {round.hint}</span>
           {:else}
             <span class="hint">No hint this round. Bluff hard.</span>

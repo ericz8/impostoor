@@ -7,8 +7,8 @@ Built with Svelte 5 (runes), Vite, and `vite-plugin-pwa`. Fully installable and 
 ## How a round works
 
 1. **Set up** — pick word categories, toggle the impostor hint, add 3+ players. Players from earlier sessions are one tap away.
-2. **Pass the phone** — each player taps their name and *holds to peek* at their role. Crew members see the secret word; the impostor sees a hint.
-3. **Play** — the app picks who starts and the direction of play. Go around giving one word or phrase each, then vote.
+2. **Pass the phone** — each player taps their name and *holds to peek* at their role. Crew members see the secret word; the impostor sees a hint — but only if they're one of the first two speakers (a late impostor has already heard clues).
+3. **Play** — the app fixes the speaking order up front (random starter, random direction around the circle) and shows it as a numbered list. Go around giving one word or phrase each, then vote.
 
 Win conditions: the crew wins by voting out the impostor — unless the impostor then guesses the word. The impostor also wins by surviving the vote. The play screen has a spoiler-safe "reveal the secret word" for checking guesses.
 

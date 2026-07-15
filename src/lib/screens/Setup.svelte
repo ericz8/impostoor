@@ -130,7 +130,7 @@
       <label class="toggle-row card">
         <div>
           <strong>Hint for the impostor</strong>
-          <p>They get a vague clue about the word — easier to blend in.</p>
+          <p>A vague clue about the word — only if they’re one of the first two to speak.</p>
         </div>
         <input type="checkbox" class="switch" bind:checked={game.hintsOn} />
       </label>

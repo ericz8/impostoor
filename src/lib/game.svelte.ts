@@ -8,10 +8,14 @@ export type Winner = 'imposter' | 'players'
 export interface Round {
   word: string
   hint: string
+  /** Hints are only granted when the imposter speaks first or second. */
+  hintAllowed: boolean
   categoryId: string
   imposter: string
   starter: string
   clockwise: boolean
+  /** Speaking order for the round, starting with the starter. */
+  order: string[]
   viewed: string[]
   winner?: Winner | null
 }
@@ -210,14 +214,30 @@ class GameState {
     const fresh = pool.filter(({ entry }) => !this.usedWords.includes(entry.word))
     const { entry, categoryId } = pick(fresh.length > 0 ? fresh : pool)
 
+    // Fix the speaking order up front: the lineup is treated as clockwise
+    // seating, so a random starter + direction walks the circle.
+    const n = this.players.length
+    const startIdx = Math.floor(Math.random() * n)
+    const clockwise = Math.random() < 0.5
+    const step = clockwise ? 1 : -1
+    const order = Array.from(
+      { length: n },
+      (_, i) => this.players[(((startIdx + step * i) % n) + n) % n],
+    )
+
+    const imposter = pick(this.players)
+
     this.usedWords.push(entry.word)
     this.round = {
       word: entry.word,
       hint: entry.hint,
+      // A late-speaking imposter has heard clues already — no hint for them.
+      hintAllowed: order.indexOf(imposter) <= 1,
       categoryId,
-      imposter: pick(this.players),
-      starter: pick(this.players),
-      clockwise: Math.random() < 0.5,
+      imposter,
+      starter: order[0],
+      clockwise,
+      order,
       viewed: [],
     }
     this.go('reveal')
