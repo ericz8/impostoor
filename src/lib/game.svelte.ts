@@ -8,13 +8,12 @@ export type Winner = 'imposter' | 'players'
 export interface Round {
   word: string
   hint: string
-  /** Hints are only granted when the imposter speaks first or second. */
-  hintAllowed: boolean
   categoryId: string
   imposter: string
   starter: string
+  /** Whether the final speaking order matches reveal order, or its reverse. */
   clockwise: boolean
-  /** Speaking order for the round, starting with the starter. */
+  /** Speaking order for the round, starting with the starter. Set once everyone has revealed. */
   order: string[]
   viewed: string[]
   winner?: Winner | null
@@ -58,7 +57,8 @@ function readJSON<T>(storage: Storage, key: string): T | null {
 class GameState {
   screen: Screen = $state('setup')
   players: string[] = $state([])
-  selectedCategories: string[] = $state(['animals'])
+  /** Empty means "all built-in categories". */
+  selectedCategories: string[] = $state([])
   hintsOn = $state(true)
   usedWords: string[] = $state([])
   round: Round | null = $state(null)
@@ -67,22 +67,20 @@ class GameState {
   playerWins = $state(0)
   customWords: WordEntry[] = $state([])
 
-  /** Every word the selected categories (incl. custom) contribute. */
+  /** Every word the selected categories (incl. custom) contribute. Empty selection = all built-ins. */
   readonly wordPool = $derived.by(() => {
-    const pool = categories
-      .filter((c) => this.selectedCategories.includes(c.id))
-      .flatMap((c) => c.words.map((entry) => ({ entry, categoryId: c.id })))
+    const picked =
+      this.selectedCategories.length === 0
+        ? categories
+        : categories.filter((c) => this.selectedCategories.includes(c.id))
+    const pool = picked.flatMap((c) => c.words.map((entry) => ({ entry, categoryId: c.id })))
     if (this.selectedCategories.includes(CUSTOM_ID)) {
       pool.push(...this.customWords.map((entry) => ({ entry, categoryId: CUSTOM_ID })))
     }
     return pool
   })
 
-  readonly canStart = $derived(
-    this.players.length >= MIN_PLAYERS &&
-      this.selectedCategories.length >= 1 &&
-      this.wordPool.length > 0,
-  )
+  readonly canStart = $derived(this.players.length >= MIN_PLAYERS && this.wordPool.length > 0)
 
   /** Recent players not already in the current lineup. */
   readonly quickAddPlayers = $derived(
@@ -95,6 +93,15 @@ class GameState {
     this.round !== null && this.round.viewed.length === this.players.length,
   )
 
+  /** Hints are only granted when the imposter speaks first or second. */
+  readonly hintAllowed = $derived.by(() => {
+    if (!this.round) return false
+    const { viewed, imposter, clockwise } = this.round
+    const idx = viewed.includes(imposter) ? viewed.indexOf(imposter) : viewed.length
+    const position = clockwise ? idx : this.players.length - 1 - idx
+    return position <= 1
+  })
+
   constructor() {
     this.recentPlayers = readJSON<string[]>(localStorage, RECENT_KEY) ?? []
     this.customWords = readJSON<WordEntry[]>(localStorage, CUSTOM_KEY) ?? []
@@ -105,7 +112,6 @@ class GameState {
       this.selectedCategories = session.selectedCategories.filter(
         (id) => id === CUSTOM_ID || categories.some((c) => c.id === id),
       )
-      if (this.selectedCategories.length === 0) this.selectedCategories = ['animals']
       this.hintsOn = session.hintsOn
       this.usedWords = session.usedWords
       this.round = session.round
@@ -214,30 +220,21 @@ class GameState {
     const fresh = pool.filter(({ entry }) => !this.usedWords.includes(entry.word))
     const { entry, categoryId } = pick(fresh.length > 0 ? fresh : pool)
 
-    // Fix the speaking order up front: the lineup is treated as clockwise
-    // seating, so a random starter + direction walks the circle.
-    const n = this.players.length
-    const startIdx = Math.floor(Math.random() * n)
-    const clockwise = Math.random() < 0.5
-    const step = clockwise ? 1 : -1
-    const order = Array.from(
-      { length: n },
-      (_, i) => this.players[(((startIdx + step * i) % n) + n) % n],
-    )
-
     const imposter = pick(this.players)
+    // Speaking order is set once everyone reveals: the phone gets passed
+    // clockwise around the circle, so reveal order (or its reverse) *is*
+    // the real seating order.
+    const clockwise = Math.random() < 0.5
 
     this.usedWords.push(entry.word)
     this.round = {
       word: entry.word,
       hint: entry.hint,
-      // A late-speaking imposter has heard clues already — no hint for them.
-      hintAllowed: order.indexOf(imposter) <= 1,
       categoryId,
       imposter,
-      starter: order[0],
+      starter: '',
       clockwise,
-      order,
+      order: [],
       viewed: [],
     }
     this.go('reveal')
@@ -250,7 +247,11 @@ class GameState {
   }
 
   startPlaying() {
-    if (this.allViewed) this.go('play')
+    if (!this.allViewed || !this.round) return
+    const { viewed, clockwise } = this.round
+    this.round.order = clockwise ? [...viewed] : [...viewed].reverse()
+    this.round.starter = this.round.order[0]
+    this.go('play')
   }
 
   /** Record who won the current round; tapping again switches the pick. */

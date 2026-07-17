@@ -31,7 +31,6 @@
   }
 
   const startHint = $derived.by(() => {
-    if (game.selectedCategories.length === 0) return 'Pick at least one category.'
     if (game.wordPool.length === 0) {
       return 'Your words list is empty — add some or pick another category.'
     }
