@@ -13,9 +13,9 @@ export default defineConfig({
         name: 'Impostoor',
         short_name: 'Impostoor',
         description:
-          'Pass-the-phone party game: everyone gets the secret word — except the impostor.',
-        theme_color: '#14101d',
-        background_color: '#14101d',
+          'Pass-the-phone party game: everyone gets the secret word except the impostor',
+        theme_color: '#161513',
+        background_color: '#161513',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
