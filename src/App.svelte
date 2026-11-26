@@ -4,6 +4,7 @@
   import Setup from './lib/screens/Setup.svelte'
   import Reveal from './lib/screens/Reveal.svelte'
   import Play from './lib/screens/Play.svelte'
+  import LeaveRoundDialog from './lib/LeaveRoundDialog.svelte'
 
   // Keep sessionStorage/localStorage in sync with any state change.
   $effect(() => {
@@ -20,3 +21,5 @@
 {:else if game.screen === 'play'}
   <Play />
 {/if}
+
+<LeaveRoundDialog />

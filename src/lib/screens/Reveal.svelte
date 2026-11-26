@@ -1,6 +1,10 @@
 <script lang="ts">
+  import Check from '@lucide/svelte/icons/check'
+  import Eye from '@lucide/svelte/icons/eye'
   import { game } from '../game.svelte'
   import { getCategory } from '../words'
+  import TopBar from '../TopBar.svelte'
+  import CategoryIcon from '../CategoryIcon.svelte'
 
   let dialog = $state<HTMLDialogElement>()
   let selected = $state<string | null>(null)
@@ -8,11 +12,13 @@
   let hasPeeked = $state(false)
 
   const round = $derived(game.round!)
-  const category = $derived(getCategory(round.categoryId))
-  const categoryLabel = $derived(
-    category ? `${category.emoji} ${category.name}` : '✏️ Your words',
+  const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
+  const isImposter = $derived(selected !== null && game.isImposter(selected))
+  const imposterCount = $derived(round.imposters.length)
+  const showHint = $derived(
+    selected !== null && game.hintsOn && game.hintAllowedFor(selected) && round.hint !== '',
   )
-  const isImposter = $derived(selected === round.imposter)
+  const remaining = $derived(game.players.length - round.viewed.length)
 
   function openCard(player: string) {
     selected = player
@@ -48,12 +54,18 @@
 </script>
 
 <div class="screen">
+  <TopBar />
+
   <div class="screen-body">
-    <p class="eyebrow">
-      {categoryLabel} · {game.hintsOn ? 'hints on' : 'hints off'}
+    <p class="category">
+      <CategoryIcon id={round.categoryId} />
+      {categoryName}
     </p>
     <h1 class="heading">Pass the phone around</h1>
-    <p class="sub">Tap your name, peek at your role, keep your poker face.</p>
+    <p class="sub">
+      Tap your name and hold to see your role.
+      {imposterCount > 1 ? `${imposterCount} impostors` : 'One impostor'} this round{game.hintsOn ? ', hints on' : ''}.
+    </p>
 
     <div class="player-grid">
       {#each game.players as player (player)}
@@ -62,19 +74,10 @@
           <span class="name">{player}</span>
           <span class="status">
             {#if viewed}
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                <path
-                  d="m5 13 4 4L19 7"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              seen
+              <Check size={16} strokeWidth={1.75} aria-hidden="true" />
+              Seen
             {:else}
-              tap to peek
+              Tap to see
             {/if}
           </span>
         </button>
@@ -83,26 +86,20 @@
   </div>
 
   <div class="screen-footer">
-    <button
-      class="btn btn-primary"
-      disabled={!game.allViewed}
-      onclick={() => game.startPlaying()}
-    >
-      {game.allViewed
-        ? 'Everyone’s in — start talking'
-        : `${round.viewed.length}/${game.players.length} have peeked`}
+    <button class="btn btn-primary" disabled={!game.allViewed} onclick={() => game.startPlaying()}>
+      {game.allViewed ? 'Start talking' : `${remaining} still to see`}
     </button>
   </div>
 </div>
 
 <dialog bind:this={dialog} aria-labelledby="reveal-title">
   <div class="dialog-card reveal-card">
-    <p class="eyebrow">For your eyes only</p>
     <h2 id="reveal-title">{selected}</h2>
 
     <button
-      class="peek-zone"
+      class="slip"
       class:peeking
+      class:imposter={peeking && isImposter}
       onpointerdown={startPeek}
       onpointerup={endPeek}
       onpointercancel={endPeek}
@@ -113,168 +110,198 @@
       aria-live="polite"
     >
       {#if peeking}
+        <span class="slip-category">{categoryName}</span>
         {#if isImposter}
-          <span class="role imposter">You’re the impostor</span>
-          {#if game.hintsOn && game.hintAllowed && round.hint}
+          <span class="role">{imposterCount > 1 ? 'You’re an impostor' : 'You’re the impostor'}</span>
+          {#if showHint}
             <span class="hint">Hint: {round.hint}</span>
           {:else}
-            <span class="hint">No hint this round. Bluff hard.</span>
+            <span class="hint">No hint this round. Bluff hard</span>
           {/if}
         {:else}
-          <span class="role word">{round.word}</span>
-          <span class="hint">That’s the secret word. Act natural.</span>
+          <span class="role">{round.word}</span>
+          <span class="hint">The secret word. Act natural</span>
         {/if}
       {:else}
         <span class="peek-prompt">
-          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
-            <path
-              d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-            />
-            <circle cx="12" cy="12" r="3" fill="currentColor" />
-          </svg>
+          <Eye size={24} strokeWidth={1.5} aria-hidden="true" />
           Hold to reveal
         </span>
       {/if}
     </button>
 
-    <button class="btn btn-primary done" disabled={!hasPeeked} onclick={done}>
-      Got it — pass it on
-    </button>
-    <button class="btn btn-quiet" onclick={() => dialog?.close()}>
-      Wait, that’s not me
-    </button>
+    <div class="reveal-actions">
+      <button class="btn btn-primary" disabled={!hasPeeked} onclick={done}>Got it, pass it on</button>
+      <button class="btn btn-quiet" onclick={() => dialog?.close()}>Not me</button>
+    </div>
   </div>
 </dialog>
 
 <style>
+  .category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+    font-size: 0.9375rem;
+  }
+
+  .category :global(svg) {
+    color: var(--muted);
+  }
+
   .heading {
-    font-size: 1.9rem;
-    margin: 0.4rem 0 0.3rem;
+    font-size: 2rem;
+    margin-top: 8px;
   }
 
   .sub {
-    color: var(--muted);
-    margin-bottom: 1.4rem;
+    margin-top: 8px;
+    color: var(--text-2);
   }
 
   .player-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.6rem;
+    gap: 8px;
+    margin-top: 32px;
   }
 
   .player-card {
     display: grid;
-    gap: 0.25rem;
+    gap: 4px;
     text-align: left;
-    background: var(--bg-raised);
-    border: 1.5px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 1rem 1.1rem;
+    min-height: 80px;
+    align-content: center;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+    border-radius: var(--radius-card);
+    padding: 16px;
     transition:
-      border-color 0.15s ease,
-      opacity 0.15s ease,
-      transform 0.12s ease;
+      background-color 140ms var(--ease),
+      opacity 140ms var(--ease),
+      transform 140ms var(--ease);
   }
 
   .player-card:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
 
   .player-card .name {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.15rem;
+    font-weight: 500;
+    font-size: 1.125rem;
     overflow-wrap: anywhere;
   }
 
   .player-card .status {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.8rem;
+    gap: 4px;
+    font-size: 0.8125rem;
     color: var(--muted);
   }
 
   .player-card.viewed {
-    opacity: 0.55;
-    border-style: dashed;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  .player-card.viewed .name {
+    color: var(--text-2);
   }
 
   .player-card.viewed .status {
     color: var(--teal);
   }
 
+  /* -------------------------------- dialog ------------------------------- */
+
   .reveal-card {
     display: grid;
-    gap: 0.9rem;
+    gap: 20px;
     text-align: center;
   }
 
   .reveal-card h2 {
-    font-size: 2rem;
+    font-size: 1.75rem;
     overflow-wrap: anywhere;
   }
 
-  .peek-zone {
+  /* The folded slip of paper: dark until held, then the word in ink */
+  .slip {
     display: grid;
     place-items: center;
     align-content: center;
-    gap: 0.5rem;
-    min-height: 11rem;
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    border: 2px dashed color-mix(in oklab, var(--gold) 45%, transparent);
-    padding: 1.2rem;
+    gap: 8px;
+    min-height: 208px;
+    border-radius: 12px;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+    padding: 24px 20px;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
     touch-action: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+      background-color 160ms var(--ease),
+      box-shadow 160ms var(--ease),
+      transform 220ms var(--ease);
   }
 
-  .peek-zone.peeking {
-    background: var(--surface-2);
-    border-color: transparent;
-    border-style: solid;
+  .slip.peeking {
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+
+  /* The odd one out: the slip tips like the wordmark's t */
+  .slip.imposter {
+    transform: rotate(-2deg);
   }
 
   .peek-prompt {
     display: grid;
     place-items: center;
-    gap: 0.4rem;
-    color: var(--gold);
+    gap: 8px;
+    color: var(--text-2);
     font-family: var(--font-display);
-    font-weight: 650;
-    font-size: 1.05rem;
+    font-size: 1.0625rem;
+  }
+
+  .slip-category {
+    color: var(--ink-2);
+    font-size: 0.8125rem;
   }
 
   .role {
     font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.9rem;
-    line-height: 1.15;
+    font-weight: 600;
+    font-size: 2.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
     overflow-wrap: anywhere;
+    text-wrap: balance;
   }
 
-  .role.imposter {
-    color: var(--coral);
-  }
-
-  .role.word {
-    color: var(--teal);
+  .slip.imposter .role {
+    color: var(--coral-ink);
   }
 
   .hint {
-    color: var(--muted);
-    font-size: 0.95rem;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
     text-wrap: pretty;
   }
 
-  .done:disabled {
-    opacity: 0.7;
+  .reveal-actions {
+    display: grid;
+    gap: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slip.imposter {
+      transform: none;
+    }
   }
 </style>

@@ -1,265 +1,314 @@
 <script lang="ts">
+  import RotateCw from '@lucide/svelte/icons/rotate-cw'
   import { game } from '../game.svelte'
+  import { getCategory } from '../words'
   import Scoreboard from '../Scoreboard.svelte'
+  import TopBar from '../TopBar.svelte'
+  import CategoryIcon from '../CategoryIcon.svelte'
 
   const round = $derived(game.round!)
+  const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
+  const multiple = $derived(round.imposters.length > 1)
 
   let wordShown = $state(false)
 </script>
 
 <div class="screen">
-  <div class="screen-body sections">
-    <section class="starter">
-      <p class="eyebrow">First up</p>
-      <h1 class="starter-name">{round.starter}</h1>
+  <TopBar />
+
+  <div class="screen-body">
+    <section class="starter" aria-labelledby="starter-name">
+      <p class="category">
+        <CategoryIcon id={round.categoryId} size={18} />
+        {categoryName}
+      </p>
+      <p class="first-up">Goes first</p>
+      <h1 class="starter-name" id="starter-name">{round.starter}</h1>
       <p class="direction">
         <span class="dir-icon" class:ccw={!round.clockwise} aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path
-              d="M20 12a8 8 0 1 1-2.34-5.66"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-            <path d="M20 3v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <RotateCw size={18} strokeWidth={1.75} />
         </span>
-        Play passes <strong>{round.clockwise ? 'clockwise' : 'counter-clockwise'}</strong>
+        Then {round.clockwise ? 'clockwise' : 'counter-clockwise'}
+        {#if multiple}
+          <span class="sep" aria-hidden="true"></span>
+          {round.imposters.length} impostors
+        {/if}
       </p>
-      <p class="how">One word or phrase each about the secret word, then vote.</p>
+      <p class="how">One word or phrase each about the secret word, then vote</p>
       <ol class="order" aria-label="Speaking order">
         {#each round.order as player, i (player)}
-          <li class="order-chip">
+          <li>
             <span class="order-num" aria-hidden="true">{i + 1}</span>{player}
           </li>
         {/each}
       </ol>
     </section>
 
-    <section class="card win-card">
-      <h2 class="eyebrow">How to win</h2>
-      <ul class="win-list">
-        <li>
-          <span class="who crew">Everyone else</span>
-          <span>Vote out the impostor — and don’t let them guess the word.</span>
-        </li>
-        <li>
-          <span class="who imp">Impostor</span>
-          <span>Survive the vote, <em>or</em> get voted out but guess the secret word.</span>
-        </li>
-      </ul>
+    <section class="block" aria-labelledby="win-title">
+      <h2 id="win-title">How to win</h2>
+      <dl class="win-list">
+        <div>
+          <dt><span class="dot crew" aria-hidden="true"></span>Crew</dt>
+          <dd>
+            {multiple
+              ? 'Vote out every impostor without letting one guess the word'
+              : 'Vote out the impostor without letting them guess the word'}
+          </dd>
+        </div>
+        <div>
+          <dt><span class="dot imp" aria-hidden="true"></span>{multiple ? 'Impostors' : 'Impostor'}</dt>
+          <dd>Survive the vote, or get voted out and guess the secret word</dd>
+        </div>
+      </dl>
     </section>
 
-    <section class="card winner">
-      <h2 class="eyebrow">Who won this round?</h2>
-      <div class="winner-btns" role="group" aria-label="Round winner">
+    <section class="block" aria-labelledby="winner-title">
+      <h2 id="winner-title">Who won?</h2>
+      <div class="winner-btns" role="group" aria-labelledby="winner-title">
         <button
           class="winner-btn imp"
           aria-pressed={round.winner === 'imposter'}
           onclick={() => game.setWinner('imposter')}
         >
-          Impostor
+          {multiple ? 'Impostors' : 'Impostor'}
         </button>
         <button
           class="winner-btn crew"
           aria-pressed={round.winner === 'players'}
           onclick={() => game.setWinner('players')}
         >
-          Players
+          Crew
         </button>
       </div>
       <Scoreboard />
     </section>
 
-    <section class="card verify">
-      <h2 class="eyebrow">After the vote</h2>
-      <p class="verify-text">
-        Impostor guessing the word? Check their answer here — no peeking early.
-      </p>
+    <section class="block" aria-labelledby="check-title">
+      <h2 id="check-title">Check a guess</h2>
       {#if wordShown}
-        <p class="the-word">{round.word}</p>
-        <button class="btn btn-quiet" onclick={() => (wordShown = false)}>Hide it</button>
+        <div class="word-reveal">
+          <p class="the-word">{round.word}</p>
+          <button class="btn btn-quiet" onclick={() => (wordShown = false)}>Hide</button>
+        </div>
       {:else}
-        <button class="btn btn-ghost" onclick={() => (wordShown = true)}>
-          Reveal the secret word
-        </button>
+        <button class="btn btn-ghost" onclick={() => (wordShown = true)}>Show the secret word</button>
       {/if}
     </section>
   </div>
 
   <div class="screen-footer">
-    <button class="btn btn-primary" onclick={() => game.playAgain()}>
-      Play again
-    </button>
+    <button class="btn btn-primary" onclick={() => game.playAgain()}>Play again</button>
   </div>
 </div>
 
 <style>
-  .sections {
-    display: grid;
-    gap: 1rem;
-    align-content: start;
+  .starter {
+    padding: 16px 0 8px;
   }
 
-  .starter {
-    text-align: center;
-    padding: 1.5rem 0 0.75rem;
+  .category {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+    color: var(--text);
+    font-size: 0.9375rem;
+  }
+
+  .category :global(svg) {
+    color: var(--text-2);
+  }
+
+  .first-up {
+    margin-top: 32px;
+    color: var(--text-2);
   }
 
   .starter-name {
-    font-size: clamp(2.6rem, 14vw, 3.6rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--gold);
-    margin: 0.3rem 0 0.6rem;
+    font-size: clamp(3rem, 16vw, 4rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin-top: 4px;
     overflow-wrap: anywhere;
   }
 
   .direction {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 1.05rem;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--text-2);
   }
 
   .dir-icon {
     display: grid;
     place-items: center;
-    color: var(--teal);
+    color: var(--text);
   }
 
-  .dir-icon.ccw svg {
+  .dir-icon.ccw :global(svg) {
     transform: scaleX(-1);
   }
 
+  .sep {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+
   .how {
+    margin-top: 4px;
     color: var(--muted);
-    font-size: 0.95rem;
-    margin-top: 0.5rem;
+    font-size: 0.875rem;
   }
 
   .order {
     list-style: none;
-    margin: 0.9rem 0 0;
+    margin: 24px 0 0;
     padding: 0;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.45rem;
+    gap: 8px;
   }
 
-  .order-chip {
+  .order li {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px 0 4px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.35rem 0.85rem 0.35rem 0.4rem;
-    font-family: var(--font-display);
-    font-weight: 650;
-    font-size: 0.95rem;
+    box-shadow: inset 0 0 0 1px var(--line);
+    font-size: 0.9375rem;
+  }
+
+  .order li:first-child {
+    box-shadow: inset 0 0 0 1px var(--text-2);
   }
 
   .order-num {
     display: grid;
     place-items: center;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 50%;
-    background: var(--surface-2);
-    color: var(--gold);
-    font-size: 0.8rem;
-    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--raised);
+    color: var(--text-2);
+    font-size: 0.8125rem;
+  }
+
+  /* -------------------------------- blocks ------------------------------- */
+
+  .block {
+    display: grid;
+    gap: 12px;
+    margin-top: 40px;
+  }
+
+  .block h2 {
+    font-size: 1.125rem;
   }
 
   .win-list {
-    list-style: none;
     margin: 0;
-    padding: 0;
     display: grid;
-    gap: 0.75rem;
+    gap: 12px;
   }
 
-  .win-list li {
-    display: grid;
-    gap: 0.2rem;
-    font-size: 0.95rem;
+  .win-list dt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
   }
 
-  .who {
+  .win-list dd {
+    margin: 2px 0 0 16px;
+    color: var(--text-2);
+    font-size: 0.9375rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .dot.imp {
+    background: var(--coral);
+  }
+
+  .dot.crew {
+    background: var(--teal);
+  }
+
+  .word-reveal {
+    display: grid;
+    gap: 4px;
+    padding: 20px 16px 8px;
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .word-reveal .btn-quiet {
+    color: var(--ink-2);
+  }
+
+  .the-word {
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 0.9rem;
-  }
-
-  .who.crew {
-    color: var(--teal);
-  }
-
-  .who.imp {
-    color: var(--coral);
-  }
-
-  .winner {
-    display: grid;
-    gap: 0.8rem;
+    font-weight: 600;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
   }
 
   .winner-btns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
+    gap: 8px;
   }
 
   .winner-btn {
-    min-height: 3.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
     border-radius: var(--radius);
     background: var(--surface);
-    border: 1.5px solid var(--line);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
     font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.05rem;
+    font-weight: 500;
+    font-size: 1.0625rem;
     transition:
-      border-color 0.15s ease,
-      background-color 0.15s ease,
-      transform 0.12s ease;
+      background-color 140ms var(--ease),
+      color 140ms var(--ease),
+      box-shadow 140ms var(--ease),
+      transform 140ms var(--ease);
   }
 
   .winner-btn:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
 
   .winner-btn.imp[aria-pressed='true'] {
-    background: color-mix(in oklab, var(--coral) 22%, var(--surface));
-    border-color: var(--coral);
-    color: var(--coral);
+    background: var(--coral);
+    color: #2a0b0d;
+    box-shadow: none;
   }
 
   .winner-btn.crew[aria-pressed='true'] {
-    background: color-mix(in oklab, var(--teal) 20%, var(--surface));
-    border-color: var(--teal);
-    color: var(--teal);
-  }
-
-  .verify {
-    display: grid;
-    gap: 0.7rem;
-  }
-
-  .verify-text {
-    color: var(--muted);
-    font-size: 0.9rem;
-  }
-
-  .the-word {
-    font-family: var(--font-display);
-    font-weight: 800;
-    font-size: 1.8rem;
-    text-align: center;
-    color: var(--teal);
-    overflow-wrap: anywhere;
+    background: var(--teal);
+    color: #06251c;
+    box-shadow: none;
   }
 </style>

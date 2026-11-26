@@ -1,24 +1,36 @@
 /* ---------------------------------------------------------------------------
-   Impostoor design tokens — "midnight card table"
-   Deep ink-violet room, cream lettering, impostor coral, hint gold.
+   Impostoor design tokens: game night table under one lamp.
+   Warm near-black neutrals, paper and ink for the secret slip,
+   coral marks the impostor, teal marks the crew.
 --------------------------------------------------------------------------- */
 
 :root {
-  --bg: #14101d;
-  --bg-raised: #1f1830;
-  --surface: #241b36;
-  --surface-2: #2e2344;
-  --line: color-mix(in oklab, #f4ede3 12%, transparent);
-  --text: #f4ede3;
-  --muted: #a396ba;
-  --coral: #ff5a5f;
-  --coral-press: #e04a52;
-  --gold: #ebb44e;
-  --teal: #4fd1a5;
+  --bg-deep: #12110f;
+  --bg: #161513;
+  --surface: #1c1a18;
+  --raised: #262421;
+  --line: rgb(239 233 222 / 0.08);
+  --line-strong: rgb(239 233 222 / 0.16);
 
-  --radius: 18px;
-  --radius-lg: 26px;
-  --shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  --text: #efe9de;
+  --text-2: #aaa398;
+  --muted: #8a847a;
+
+  /* The secret slip */
+  --paper: #efe9de;
+  --ink: #1f1b16;
+  --ink-2: #5e554a;
+
+  --coral: #ff5a5f;
+  --coral-ink: #c42f37;
+  --teal: #4cc3a0;
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-card: 16px;
+  --radius-sheet: 20px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   --font-display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --font-body:
@@ -41,10 +53,6 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--bg);
-  background-image:
-    radial-gradient(90rem 40rem at 50% -20rem, #2a1f42 0%, transparent 60%),
-    radial-gradient(50rem 30rem at 110% 110%, #23122a 0%, transparent 55%);
-  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 1rem;
@@ -53,6 +61,11 @@ body {
   /* Native-app feel: no rubber-band scroll chaining, no tap highlight */
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: rgb(239 233 222 / 0.24);
 }
 
 #app {
@@ -65,7 +78,8 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  line-height: 1.1;
+  font-weight: 500;
+  line-height: 1.15;
   margin: 0;
   text-wrap: balance;
 }
@@ -88,10 +102,11 @@ button {
 input {
   font: inherit;
   color: inherit;
+  caret-color: var(--coral);
 }
 
 :focus-visible {
-  outline: 3px solid var(--gold);
+  outline: 2px solid var(--text);
   outline-offset: 2px;
 }
 
@@ -103,21 +118,40 @@ input {
   flex-direction: column;
   width: min(100%, 30rem);
   margin-inline: auto;
-  padding: calc(env(safe-area-inset-top) + 1.25rem) 1.25rem
-    calc(env(safe-area-inset-bottom) + 1.25rem);
+  padding: calc(env(safe-area-inset-top) + 16px) 20px 0;
 }
 
 .screen-body {
   flex: 1;
+  padding-bottom: 16px;
 }
 
 /* Bottom-anchored primary action, in thumb reach */
 .screen-footer {
   position: sticky;
-  bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
-  padding-top: 1rem;
+  bottom: 0;
   display: grid;
-  gap: 0.6rem;
+  gap: 8px;
+  padding: 24px 0 calc(env(safe-area-inset-bottom) + 16px);
+  background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+}
+
+/* A labelled group: heading on the left, optional meta on the right */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-head h2 {
+  font-size: 1.125rem;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.8125rem;
 }
 
 /* -------------------------------- buttons -------------------------------- */
@@ -126,70 +160,120 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-height: 3.4rem;
-  padding: 0.8rem 1.4rem;
+  gap: 8px;
+  min-height: 52px;
+  padding: 12px 20px;
   border-radius: var(--radius);
   font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 650;
+  font-size: 1.0625rem;
+  font-weight: 500;
   transition:
-    transform 0.12s ease,
-    background-color 0.15s ease,
-    opacity 0.15s ease;
+    transform 140ms var(--ease),
+    background-color 140ms var(--ease),
+    color 140ms var(--ease),
+    opacity 140ms var(--ease);
   user-select: none;
   -webkit-user-select: none;
 }
 
 .btn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 .btn-primary {
-  background: var(--coral);
-  color: #23090c;
-  box-shadow: var(--shadow);
+  background: var(--text);
+  color: var(--bg);
 }
 
 .btn-primary:active {
-  background: var(--coral-press);
+  background: #d9d2c5;
 }
 
 .btn-primary:disabled {
-  background: var(--surface-2);
+  background: var(--raised);
   color: var(--muted);
-  box-shadow: none;
   cursor: not-allowed;
   transform: none;
 }
 
 .btn-ghost {
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.btn-ghost:active {
+  background: #2e2b28;
 }
 
 .btn-quiet {
-  color: var(--muted);
-  min-height: 2.75rem;
+  color: var(--text-2);
+  min-height: 44px;
   font-size: 1rem;
+}
+
+/* Square icon-only control */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.icon-btn:active {
+  background: var(--raised);
+  color: var(--text);
+}
+
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: var(--raised);
+    color: var(--text);
+  }
+  .btn-ghost:hover {
+    background: #2e2b28;
+  }
 }
 
 /* --------------------------------- cards --------------------------------- */
 
 .card {
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 1.1rem 1.2rem;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  border-radius: var(--radius-card);
+  padding: 16px;
 }
 
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+/* --------------------------------- inputs -------------------------------- */
+
+.field {
+  min-width: 0;
+  height: 48px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0 16px;
+  font-size: 1rem;
+  transition: border-color 140ms var(--ease);
+}
+
+.field::placeholder {
   color: var(--muted);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--text-2);
+}
+
+.error {
+  color: var(--coral);
+  font-size: 0.875rem;
 }
 
 /* -------------------------------- dialogs -------------------------------- */
@@ -200,61 +284,66 @@ dialog {
   margin: auto;
   background: transparent;
   color: inherit;
-  max-width: min(100vw - 1.5rem, 28rem);
+  max-width: min(100vw - 24px, 28rem);
   width: 100%;
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(100dvh - 32px);
 }
 
 dialog .dialog-card {
-  background: var(--bg-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: 1.4rem 1.3rem;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 16px 40px rgb(0 0 0 / 0.4);
+  border-radius: var(--radius-sheet);
+  padding: 24px 20px 20px;
+}
+
+dialog .dialog-card > h2 {
+  font-size: 1.5rem;
 }
 
 /* Top-layer entry/exit animation (display + overlay must be transitioned) */
 dialog[open] {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 
   @starting-style {
     opacity: 0;
-    transform: translateY(1.5rem) scale(0.96);
+    transform: translateY(12px);
   }
 }
 
 dialog {
   opacity: 0;
-  transform: translateY(1.5rem) scale(0.96);
+  transform: translateY(12px);
   transition:
-    opacity 0.28s ease,
-    transform 0.28s ease,
-    display 0.28s allow-discrete,
-    overlay 0.28s allow-discrete;
+    opacity 300ms var(--ease),
+    transform 300ms var(--ease),
+    display 300ms allow-discrete,
+    overlay 300ms allow-discrete;
 }
 
 dialog::backdrop {
-  background: rgb(8 5 14 / 0);
+  background: rgb(10 9 8 / 0);
   transition:
-    background-color 0.28s ease,
-    display 0.28s allow-discrete,
-    overlay 0.28s allow-discrete;
+    background-color 300ms var(--ease),
+    display 300ms allow-discrete,
+    overlay 300ms allow-discrete;
 }
 
 dialog[open]::backdrop {
-  background: rgb(8 5 14 / 0.72);
+  background: rgb(10 9 8 / 0.76);
 
   @starting-style {
-    background: rgb(8 5 14 / 0);
+    background: rgb(10 9 8 / 0);
   }
 }
 
 /* --------------------------- view transitions ---------------------------- */
 
 ::view-transition-group(root) {
-  animation-duration: 0.32s;
-  animation-timing-function: cubic-bezier(0.3, 0.9, 0.4, 1);
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease);
 }
 
 @keyframes slide-to-left {

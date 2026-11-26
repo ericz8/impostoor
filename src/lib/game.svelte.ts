@@ -1,5 +1,6 @@
 import { flushSync } from 'svelte'
 import { categories, type WordEntry } from './words'
+import { pickMany, speaksEarly } from './rules'
 
 export type Screen = 'intro' | 'setup' | 'reveal' | 'play'
 
@@ -9,7 +10,7 @@ export interface Round {
   word: string
   hint: string
   categoryId: string
-  imposter: string
+  imposters: string[]
   starter: string
   /** Whether the final speaking order matches reveal order, or its reverse. */
   clockwise: boolean
@@ -23,6 +24,7 @@ interface SessionSnapshot {
   players: string[]
   selectedCategories: string[]
   hintsOn: boolean
+  imposterCount?: number
   usedWords: string[]
   round: Round | null
   screen: Screen
@@ -35,6 +37,9 @@ const RECENT_KEY = 'impostoor:recent-players'
 const INTRO_KEY = 'impostoor:seen-intro'
 const CUSTOM_KEY = 'impostoor:custom-words'
 const MAX_RECENT = 12
+
+/** Marks the single history entry pushed on top of setup for every other screen. */
+const NAV_STATE = { impostoorSub: true }
 
 /** Pseudo-category id for user-authored words. */
 export const CUSTOM_ID = 'custom'
@@ -60,12 +65,20 @@ class GameState {
   /** Empty means "all built-in categories". */
   selectedCategories: string[] = $state([])
   hintsOn = $state(true)
+  /** Requested impostor count; clamped to what the lineup allows. */
+  imposterCount = $state(1)
   usedWords: string[] = $state([])
   round: Round | null = $state(null)
   recentPlayers: string[] = $state([])
   imposterWins = $state(0)
   playerWins = $state(0)
   customWords: WordEntry[] = $state([])
+  /** True while a history entry for a non-setup screen sits on top of setup. */
+  canGoBack = $state(false)
+  /** Set when leaving would throw away a round some players already peeked at. */
+  confirmLeave = $state(false)
+
+  private forceLeave = false
 
   /** Every word the selected categories (incl. custom) contribute. Empty selection = all built-ins. */
   readonly wordPool = $derived.by(() => {
@@ -82,6 +95,13 @@ class GameState {
 
   readonly canStart = $derived(this.players.length >= MIN_PLAYERS && this.wordPool.length > 0)
 
+  /** At least one player always shares the word. */
+  readonly maxImposters = $derived(Math.max(1, this.players.length - 1))
+
+  readonly effectiveImposters = $derived(
+    Math.min(Math.max(1, this.imposterCount), this.maxImposters),
+  )
+
   /** Recent players not already in the current lineup. */
   readonly quickAddPlayers = $derived(
     this.recentPlayers.filter(
@@ -92,15 +112,6 @@ class GameState {
   readonly allViewed = $derived(
     this.round !== null && this.round.viewed.length === this.players.length,
   )
-
-  /** Hints are only granted when the imposter speaks first or second. */
-  readonly hintAllowed = $derived.by(() => {
-    if (!this.round) return false
-    const { viewed, imposter, clockwise } = this.round
-    const idx = viewed.includes(imposter) ? viewed.indexOf(imposter) : viewed.length
-    const position = clockwise ? idx : this.players.length - 1 - idx
-    return position <= 1
-  })
 
   constructor() {
     this.recentPlayers = readJSON<string[]>(localStorage, RECENT_KEY) ?? []
@@ -113,8 +124,10 @@ class GameState {
         (id) => id === CUSTOM_ID || categories.some((c) => c.id === id),
       )
       this.hintsOn = session.hintsOn
+      this.imposterCount = session.imposterCount ?? 1
       this.usedWords = session.usedWords
-      this.round = session.round
+      // Rounds saved before multi-impostor support have no `imposters` list.
+      this.round = Array.isArray(session.round?.imposters) ? session.round : null
       this.imposterWins = session.imposterWins ?? 0
       this.playerWins = session.playerWins ?? 0
       // Never resume mid-reveal/mid-play after a reload; the round data is
@@ -123,6 +136,11 @@ class GameState {
     } else if (!localStorage.getItem(INTRO_KEY)) {
       this.screen = 'intro'
     }
+
+    // A reload on a sub-screen leaves its history entry behind; drop it so the
+    // next system back does not land on a dead entry.
+    if ((history.state as typeof NAV_STATE | null)?.impostoorSub) history.back()
+    window.addEventListener('popstate', () => this.onPopState())
   }
 
   persist() {
@@ -130,6 +148,7 @@ class GameState {
       players: this.players,
       selectedCategories: this.selectedCategories,
       hintsOn: this.hintsOn,
+      imposterCount: this.imposterCount,
       usedWords: this.usedWords,
       round: this.round,
       screen: this.screen,
@@ -143,11 +162,69 @@ class GameState {
 
   finishIntro() {
     localStorage.setItem(INTRO_KEY, '1')
-    this.go('setup')
+    if (this.canGoBack) this.back()
+    else this.show('setup')
+  }
+
+  // ------------------------------- navigation -------------------------------
+
+  /** Move forward to a screen. Every non-setup screen shares one history entry above setup. */
+  go(screen: Exclude<Screen, 'setup'>) {
+    if (this.canGoBack) {
+      history.replaceState(NAV_STATE, '')
+    } else {
+      history.pushState(NAV_STATE, '')
+      this.canGoBack = true
+    }
+    this.show(screen, 'forward')
+  }
+
+  /** On-screen back: same path as the system back gesture. */
+  back() {
+    if (this.needsLeaveConfirm()) {
+      this.confirmLeave = true
+      return
+    }
+    this.leave()
+  }
+
+  leaveConfirmed() {
+    this.confirmLeave = false
+    this.forceLeave = true
+    this.leave()
+  }
+
+  private needsLeaveConfirm() {
+    return this.screen === 'reveal' && (this.round?.viewed.length ?? 0) > 0
+  }
+
+  private leave() {
+    if (this.canGoBack) history.back()
+    else this.returnToSetup()
+  }
+
+  private onPopState() {
+    if (!this.canGoBack) return
+    this.canGoBack = false
+    if (this.screen === 'setup') return
+    if (!this.forceLeave && this.needsLeaveConfirm()) {
+      // Re-arm the entry the gesture just consumed and ask first.
+      history.pushState(NAV_STATE, '')
+      this.canGoBack = true
+      this.confirmLeave = true
+      return
+    }
+    this.forceLeave = false
+    this.returnToSetup()
+  }
+
+  private returnToSetup() {
+    if (this.screen === 'reveal') this.cancelRound()
+    this.show('setup', 'backward')
   }
 
   /** Switch screens with a directional view transition when supported. */
-  go(screen: Screen, direction: 'forward' | 'backward' = 'forward') {
+  private show(screen: Screen, direction: 'forward' | 'backward' = 'forward') {
     const update = () => flushSync(() => (this.screen = screen))
     if (!document.startViewTransition) {
       update()
@@ -160,12 +237,14 @@ class GameState {
     })
   }
 
+  // --------------------------------- players --------------------------------
+
   addPlayer(rawName: string): string | null {
     const name = rawName.trim().replace(/\s+/g, ' ')
-    if (!name) return 'Enter a name first.'
-    if (name.length > 20) return 'Keep names under 20 characters.'
+    if (!name) return 'Enter a name first'
+    if (name.length > 20) return 'Keep names under 20 characters'
     if (this.players.some((p) => p.toLowerCase() === name.toLowerCase())) {
-      return `${name} is already playing.`
+      return `${name} is already playing`
     }
     this.players.push(name)
     this.rememberPlayer(name)
@@ -176,8 +255,17 @@ class GameState {
     this.players = this.players.filter((p) => p !== name)
   }
 
-  forgetRecentPlayer(name: string) {
-    this.recentPlayers = this.recentPlayers.filter((p) => p !== name)
+  /** Remove a saved player; returns their slot so the removal can be undone. */
+  forgetRecentPlayer(name: string): number {
+    const index = this.recentPlayers.indexOf(name)
+    if (index !== -1) this.recentPlayers.splice(index, 1)
+    return index
+  }
+
+  restoreRecentPlayer(name: string, index: number) {
+    if (this.recentPlayers.includes(name)) return
+    this.recentPlayers.splice(Math.max(0, index), 0, name)
+    this.recentPlayers = this.recentPlayers.slice(0, MAX_RECENT)
   }
 
   private rememberPlayer(name: string) {
@@ -186,6 +274,12 @@ class GameState {
       ...this.recentPlayers.filter((p) => p.toLowerCase() !== name.toLowerCase()),
     ].slice(0, MAX_RECENT)
   }
+
+  setImposterCount(count: number) {
+    this.imposterCount = Math.min(Math.max(1, count), this.maxImposters)
+  }
+
+  // ------------------------------- categories -------------------------------
 
   toggleCategory(id: string) {
     if (this.selectedCategories.includes(id)) {
@@ -198,10 +292,10 @@ class GameState {
   addCustomWord(rawWord: string, rawHint: string): string | null {
     const word = rawWord.trim().replace(/\s+/g, ' ')
     const hint = rawHint.trim()
-    if (!word) return 'Enter a word first.'
-    if (word.length > 40) return 'Keep words under 40 characters.'
+    if (!word) return 'Enter a word first'
+    if (word.length > 40) return 'Keep words under 40 characters'
     if (this.customWords.some((w) => w.word.toLowerCase() === word.toLowerCase())) {
-      return `“${word}” is already on your list.`
+      return `“${word}” is already on your list`
     }
     this.customWords.push({ word, hint })
     return null
@@ -210,6 +304,8 @@ class GameState {
   removeCustomWord(word: string) {
     this.customWords = this.customWords.filter((w) => w.word !== word)
   }
+
+  // ---------------------------------- rounds --------------------------------
 
   startGame() {
     if (!this.canStart) return
@@ -220,7 +316,7 @@ class GameState {
     const fresh = pool.filter(({ entry }) => !this.usedWords.includes(entry.word))
     const { entry, categoryId } = pick(fresh.length > 0 ? fresh : pool)
 
-    const imposter = pick(this.players)
+    const imposters = pickMany(this.players, this.effectiveImposters)
     // Speaking order is set once everyone reveals: the phone gets passed
     // clockwise around the circle, so reveal order (or its reverse) *is*
     // the real seating order.
@@ -231,13 +327,32 @@ class GameState {
       word: entry.word,
       hint: entry.hint,
       categoryId,
-      imposter,
+      imposters,
       starter: '',
       clockwise,
       order: [],
       viewed: [],
     }
     this.go('reveal')
+  }
+
+  /** Leaving reveal abandons the round. An unseen word goes back in the pool. */
+  private cancelRound() {
+    const round = this.round
+    if (!round) return
+    if (round.viewed.length === 0) {
+      this.usedWords = this.usedWords.filter((w) => w !== round.word)
+    }
+  }
+
+  isImposter(player: string) {
+    return this.round?.imposters.includes(player) ?? false
+  }
+
+  hintAllowedFor(player: string) {
+    if (!this.round) return false
+    const { viewed, clockwise } = this.round
+    return speaksEarly(player, viewed, clockwise, this.players.length)
   }
 
   markViewed(player: string) {
@@ -265,9 +380,9 @@ class GameState {
   }
 
   playAgain() {
-    // The stale round is left in place (startGame replaces it) — nulling it
+    // The stale round is left in place (startGame replaces it). Nulling it
     // here would crash the still-mounted Play screen's derived reads.
-    this.go('setup', 'backward')
+    this.back()
   }
 }
 
