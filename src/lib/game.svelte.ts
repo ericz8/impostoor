@@ -281,6 +281,20 @@ class GameState {
 
   // ------------------------------- categories -------------------------------
 
+  /** Built-in categories, plus "Your words" once it has entries. */
+  readonly selectableCategories = $derived([
+    ...categories.map((c) => c.id),
+    ...(this.customWords.length > 0 ? [CUSTOM_ID] : []),
+  ])
+
+  readonly allCategoriesSelected = $derived(
+    this.selectableCategories.every((id) => this.selectedCategories.includes(id)),
+  )
+
+  toggleAllCategories() {
+    this.selectedCategories = this.allCategoriesSelected ? [] : [...this.selectableCategories]
+  }
+
   toggleCategory(id: string) {
     if (this.selectedCategories.includes(id)) {
       this.selectedCategories = this.selectedCategories.filter((c) => c !== id)

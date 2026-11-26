@@ -96,7 +96,12 @@
     <section aria-labelledby="words-title">
       <div class="section-head">
         <h2 id="words-title">Words</h2>
-        <span class="meta">{selectedCount === 0 ? 'All categories' : `${selectedCount} selected`}</span>
+        <div class="head-actions">
+          <span class="meta">{selectedCount === 0 ? 'All categories' : `${selectedCount} selected`}</span>
+          <button class="text-btn" onclick={() => game.toggleAllCategories()}>
+            {game.allCategoriesSelected ? 'Clear' : 'Select all'}
+          </button>
+        </div>
       </div>
       <div class="chip-grid" role="group" aria-labelledby="words-title">
         {#each categories as category (category.id)}
@@ -472,6 +477,31 @@
   }
 
   /* -------------------------------- words -------------------------------- */
+
+  .head-actions {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  /* Tall hit area, tucked into the heading's baseline */
+  .text-btn {
+    margin: -12px -8px;
+    padding: 12px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 4px;
+    transition: text-decoration-color 140ms var(--ease);
+  }
+
+  @media (hover: hover) {
+    .text-btn:hover {
+      text-decoration-color: var(--text);
+    }
+  }
 
   .chip-grid {
     display: flex;
