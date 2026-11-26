@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { pickMany, speaksEarly } from './rules'
+import { pickMany, speaksEarly, voteOutcome } from './rules'
 
 describe('speaksEarly', () => {
   // 5 players; `viewed` is who revealed before (or including) the player.
@@ -24,4 +24,30 @@ test('pickMany returns distinct items from the input', () => {
     expect(picked.every((p) => players.includes(p))).toBe(true)
   }
   expect(pickMany(players, 9)).toHaveLength(5)
+})
+
+describe('voteOutcome', () => {
+  test('a single leader is voted out', () => {
+    const ballots = { A: 'C', B: 'C', C: 'A', D: 'C' }
+    expect(voteOutcome(ballots, false)).toEqual({ kind: 'out', player: 'C', votes: 3 })
+  })
+
+  test('a tie on the first vote asks for a revote between the tied players', () => {
+    const ballots = { A: 'B', B: 'A', C: 'B', D: 'A' }
+    expect(voteOutcome(ballots, false)).toEqual({ kind: 'tie', tied: ['B', 'A'] })
+  })
+
+  test('a tie on the revote votes nobody out', () => {
+    const ballots = { A: 'B', B: 'A', C: 'B', D: 'A' }
+    expect(voteOutcome(ballots, true)).toEqual({ kind: 'none' })
+  })
+
+  test('self-votes are not counted', () => {
+    const ballots = { A: 'A', B: 'C', C: 'B', D: 'B' }
+    expect(voteOutcome(ballots, false)).toEqual({ kind: 'out', player: 'B', votes: 2 })
+  })
+
+  test('no ballots votes nobody out', () => {
+    expect(voteOutcome({}, false)).toEqual({ kind: 'none' })
+  })
 })

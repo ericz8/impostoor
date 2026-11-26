@@ -249,6 +249,64 @@ input {
   padding: 16px;
 }
 
+/* ------------------------------ player cards ----------------------------- */
+
+/* Pass-the-phone lineup: each player taps their own card */
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.player-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  min-height: 80px;
+  align-content: center;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  transition:
+    background-color 140ms var(--ease),
+    opacity 140ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.player-card:active {
+  transform: scale(0.98);
+}
+
+.player-card .name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+
+.player-card .status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.player-card.viewed {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.player-card.viewed .name {
+  color: var(--text-2);
+}
+
+.player-card.viewed .status {
+  color: var(--teal);
+}
+
 /* --------------------------------- inputs -------------------------------- */
 
 .field {

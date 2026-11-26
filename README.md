@@ -6,9 +6,10 @@ Built with Svelte 5 (runes), Vite, and `vite-plugin-pwa`. Fully installable and 
 
 ## How a round works
 
-1. **Set up**: pick word categories (13 built in, 40 words each, plus your own), choose how many impostors (up to one fewer than the player count), toggle the impostor hint, add 3+ players. Saved players from earlier sessions are one tap away. Long press (touch) or right-click (mouse) a saved player to forget them, with undo.
+1. **Set up**: pick word categories (13 built in, 40 words each, plus your own), choose how many impostors (up to one fewer than the player count), toggle the impostor hint and blind voting, add 3+ players. Saved players from earlier sessions are one tap away. Long press (touch) or right-click (mouse) a saved player to forget them, with undo.
 2. **Pass the phone**: each player taps their name and *holds to peek* at their role. Crew members see the secret word and its category. Impostors see the category and a hint, but only if they're one of the first two speakers (a late impostor has already heard clues).
 3. **Play**: the app shows the category, who starts, the direction around the circle, and the full speaking order. Go around giving one word or phrase each, then vote.
+4. **Blind voting** (optional): instead of pointing, tap "Start the vote" and pass the phone again. Each player taps their name and secretly picks someone other than themselves. The most-voted player is out, and the app shows whether they were an impostor. A tie gets one revote between the tied players, and a second tie means nobody goes out. Continue returns to the play screen to record the winner.
 
 Every screen past setup has a back arrow that also follows the system back gesture. Leaving a round after someone has peeked asks for confirmation first.
 
@@ -34,7 +35,7 @@ bun run scripts/make-icons.ts
 
 ## Storage model
 
-- **`sessionStorage`**: the per-tab session with players, selected categories, hint toggle, impostor count, words already used this session, and the impostor-vs-crew win tally.
+- **`sessionStorage`**: the per-tab session with players, selected categories, hint and blind-voting toggles, impostor count, words already used this session, and the impostor-vs-crew win tally.
 - **`localStorage`** — cross-session: recently used player names (quick-add), custom words ("Your words" category), and the "seen intro" flag.
 
 Word lists with per-word impostor hints live in `src/lib/words.ts`.

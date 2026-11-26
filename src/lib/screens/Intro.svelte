@@ -27,7 +27,7 @@
       </li>
       <li>
         <h2>Vote</h2>
-        <p>Point at who you think is faking it. Vote out the impostor to win, unless they then guess the word. An impostor who survives the vote wins outright.</p>
+        <p>Point at who you think is faking it, or turn on blind voting to pass the phone and vote in secret. Vote out the impostor to win, unless they then guess the word. An impostor who survives the vote wins outright.</p>
       </li>
     </ol>
   </div>

@@ -23,3 +23,25 @@ export function speaksEarly(
   const position = clockwise ? idx : playerCount - 1 - idx
   return position <= 1
 }
+
+export type VoteOutcome =
+  | { kind: 'out'; player: string; votes: number }
+  | { kind: 'tie'; tied: string[] }
+  | { kind: 'none' }
+
+/**
+ * Count secret ballots (voter -> pick). The most-voted player is out. A tie
+ * earns one revote between the tied players; a tie on the revote means
+ * nobody goes out.
+ */
+export function voteOutcome(ballots: Record<string, string>, isRevote: boolean): VoteOutcome {
+  const counts = new Map<string, number>()
+  for (const [voter, pick] of Object.entries(ballots)) {
+    if (voter !== pick) counts.set(pick, (counts.get(pick) ?? 0) + 1)
+  }
+  const top = Math.max(0, ...counts.values())
+  const leaders = [...counts].filter(([, n]) => n === top && n > 0).map(([player]) => player)
+  if (leaders.length === 1) return { kind: 'out', player: leaders[0], votes: top }
+  if (leaders.length > 1 && !isRevote) return { kind: 'tie', tied: leaders }
+  return { kind: 'none' }
+}

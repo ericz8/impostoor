@@ -1,10 +1,20 @@
 import { flushSync } from 'svelte'
 import { categories, type WordEntry } from './words'
-import { pickMany, speaksEarly } from './rules'
+import { pickMany, speaksEarly, voteOutcome, type VoteOutcome } from './rules'
 
-export type Screen = 'intro' | 'setup' | 'reveal' | 'play'
+export type Screen = 'intro' | 'setup' | 'reveal' | 'play' | 'vote'
 
 export type Winner = 'imposter' | 'players'
+
+export interface Vote {
+  /** Who can be voted for; narrowed to the tied players on a revote. */
+  candidates: string[]
+  /** Secret ballots, voter -> pick. Never shown on screen. */
+  ballots: Record<string, string>
+  revote: boolean
+  /** Set once the ballots are counted. */
+  outcome?: VoteOutcome
+}
 
 export interface Round {
   word: string
@@ -18,12 +28,15 @@ export interface Round {
   order: string[]
   viewed: string[]
   winner?: Winner | null
+  /** Blind voting only. */
+  vote?: Vote | null
 }
 
 interface SessionSnapshot {
   players: string[]
   selectedCategories: string[]
   hintsOn: boolean
+  blindVoting?: boolean
   imposterCount?: number
   usedWords: string[]
   round: Round | null
@@ -65,6 +78,8 @@ class GameState {
   /** Empty means "all built-in categories". */
   selectedCategories: string[] = $state([])
   hintsOn = $state(true)
+  /** Players pass the phone to vote in secret instead of pointing. */
+  blindVoting = $state(false)
   /** Requested impostor count; clamped to what the lineup allows. */
   imposterCount = $state(1)
   usedWords: string[] = $state([])
@@ -124,6 +139,7 @@ class GameState {
         (id) => id === CUSTOM_ID || categories.some((c) => c.id === id),
       )
       this.hintsOn = session.hintsOn
+      this.blindVoting = session.blindVoting ?? false
       this.imposterCount = session.imposterCount ?? 1
       this.usedWords = session.usedWords
       // Rounds saved before multi-impostor support have no `imposters` list.
@@ -148,6 +164,7 @@ class GameState {
       players: this.players,
       selectedCategories: this.selectedCategories,
       hintsOn: this.hintsOn,
+      blindVoting: this.blindVoting,
       imposterCount: this.imposterCount,
       usedWords: this.usedWords,
       round: this.round,
@@ -181,6 +198,10 @@ class GameState {
 
   /** On-screen back: same path as the system back gesture. */
   back() {
+    if (this.screen === 'vote') {
+      this.show('play', 'backward')
+      return
+    }
     if (this.needsLeaveConfirm()) {
       this.confirmLeave = true
       return
@@ -207,6 +228,13 @@ class GameState {
     if (!this.canGoBack) return
     this.canGoBack = false
     if (this.screen === 'setup') return
+    if (this.screen === 'vote') {
+      // Back from the vote lands on play, not setup: re-arm the entry.
+      history.pushState(NAV_STATE, '')
+      this.canGoBack = true
+      this.show('play', 'backward')
+      return
+    }
     if (!this.forceLeave && this.needsLeaveConfirm()) {
       // Re-arm the entry the gesture just consumed and ask first.
       history.pushState(NAV_STATE, '')
@@ -391,6 +419,39 @@ class GameState {
     if (winner === 'imposter') this.imposterWins++
     else this.playerWins++
     this.round.winner = winner
+  }
+
+  // ---------------------------------- voting --------------------------------
+
+  /** The counted vote once it is settled (someone out, or nobody); null while pending or tied. */
+  readonly voteResult = $derived.by(() => {
+    const outcome = this.round?.vote?.outcome
+    return outcome && outcome.kind !== 'tie' ? outcome : null
+  })
+
+  /** Start a fresh secret vote. Any half-finished one is thrown away. */
+  startVote() {
+    if (!this.round || this.voteResult) return
+    this.round.vote = { candidates: [...this.round.order], ballots: {}, revote: false }
+    this.go('vote')
+  }
+
+  castVote(voter: string, pick: string) {
+    const vote = this.round?.vote
+    if (!vote || vote.outcome || voter === pick || !vote.candidates.includes(pick)) return
+    vote.ballots[voter] = pick
+  }
+
+  countVotes() {
+    const vote = this.round?.vote
+    if (!vote || Object.keys(vote.ballots).length < this.players.length) return
+    vote.outcome = voteOutcome(vote.ballots, vote.revote)
+  }
+
+  revote() {
+    const vote = this.round?.vote
+    if (!this.round || vote?.outcome?.kind !== 'tie') return
+    this.round.vote = { candidates: vote.outcome.tied, ballots: {}, revote: true }
   }
 
   playAgain() {

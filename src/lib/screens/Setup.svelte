@@ -176,6 +176,14 @@
           </div>
           <input type="checkbox" class="switch" bind:checked={game.hintsOn} />
         </label>
+
+        <label class="setting">
+          <div class="setting-text">
+            <span class="setting-name">Blind voting</span>
+            <span class="setting-note">Pass the phone to vote in secret</span>
+          </div>
+          <input type="checkbox" class="switch" bind:checked={game.blindVoting} />
+        </label>
       </div>
     </section>
 

@@ -9,6 +9,8 @@
   const round = $derived(game.round!)
   const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
   const multiple = $derived(round.imposters.length > 1)
+  const result = $derived(game.voteResult)
+  const voting = $derived(game.blindVoting && !result)
 
   let wordShown = $state(false)
 </script>
@@ -43,6 +45,23 @@
         {/each}
       </ol>
     </section>
+
+    {#if result}
+      <section class="block" aria-labelledby="vote-title">
+        <h2 id="vote-title">The vote</h2>
+        {#if result.kind === 'out'}
+          {@const imposter = game.isImposter(result.player)}
+          <p class="vote-result">
+            <span class="dot" class:imp={imposter} class:crew={!imposter} aria-hidden="true"></span>
+            <span><strong>{result.player}</strong> was voted out, {imposter
+                ? multiple ? 'an impostor' : 'the impostor'
+                : 'crew'}</span>
+          </p>
+        {:else}
+          <p class="vote-result">Nobody was voted out</p>
+        {/if}
+      </section>
+    {/if}
 
     <section class="block" aria-labelledby="win-title">
       <h2 id="win-title">How to win</h2>
@@ -97,7 +116,12 @@
   </div>
 
   <div class="screen-footer">
-    <button class="btn btn-primary" onclick={() => game.playAgain()}>Play again</button>
+    {#if voting}
+      <button class="btn btn-primary" onclick={() => game.startVote()}>Start the vote</button>
+      <button class="btn btn-quiet" onclick={() => game.playAgain()}>Play again</button>
+    {:else}
+      <button class="btn btn-primary" onclick={() => game.playAgain()}>Play again</button>
+    {/if}
   </div>
 </div>
 
@@ -235,7 +259,20 @@
     font-size: 0.9375rem;
   }
 
+  .vote-result {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+  }
+
+  .vote-result strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
   .dot {
+    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
