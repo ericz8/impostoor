@@ -5,6 +5,7 @@
   let dialog = $state<HTMLDialogElement>()
   let word = $state('')
   let hint = $state('')
+  let decoy = $state('')
   let error = $state<string | null>(null)
 
   export function open() {
@@ -14,10 +15,11 @@
 
   function submit(event: SubmitEvent) {
     event.preventDefault()
-    error = game.addCustomWord(word, hint)
+    error = game.addCustomWord(word, hint, decoy)
     if (!error) {
       word = ''
       hint = ''
+      decoy = ''
     }
   }
 </script>
@@ -45,8 +47,18 @@
         aria-label="Hint for the impostor"
         autocomplete="off"
         maxlength="80"
-        enterkeyhint="done"
+        enterkeyhint="next"
         bind:value={hint}
+      />
+      <input
+        class="field"
+        type="text"
+        placeholder="Undercover decoy (optional)"
+        aria-label="Similar word for undercover impostors"
+        autocomplete="off"
+        maxlength="40"
+        enterkeyhint="done"
+        bind:value={decoy}
       />
       <button type="submit" class="btn btn-ghost">Add word</button>
     </form>
@@ -60,7 +72,9 @@
           <li>
             <div class="entry">
               <span class="word">{entry.word}</span>
-              <span class="hint">{entry.hint || 'No hint'}</span>
+              <span class="hint">
+                {entry.hint || 'No hint'}{entry.decoy ? `, decoy: ${entry.decoy}` : ''}
+              </span>
             </div>
             <button
               class="icon-btn"

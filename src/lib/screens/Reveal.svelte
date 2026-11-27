@@ -15,9 +15,13 @@
   const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
   const isImposter = $derived(selected !== null && game.isImposter(selected))
   const imposterCount = $derived(round.imposters.length)
+  // Undercover slips look the same for everyone: impostors just get the decoy.
+  const undercover = $derived(!!round.decoy)
+  const slipWord = $derived(undercover && isImposter ? round.decoy : round.word)
   const showHint = $derived(
     selected !== null && game.hintsOn && game.hintAllowedFor(selected) && round.hint !== '',
   )
+  const roundNote = $derived(undercover ? ', undercover' : game.hintsOn ? ', hints on' : '')
   const remaining = $derived(game.players.length - round.viewed.length)
 
   function openCard(player: string) {
@@ -63,8 +67,8 @@
     </p>
     <h1 class="heading">Pass the phone around</h1>
     <p class="sub">
-      Tap your name and hold to see your role.
-      {imposterCount > 1 ? `${imposterCount} impostors` : 'One impostor'} this round{game.hintsOn ? ', hints on' : ''}.
+      Tap your name and hold to see your {undercover ? 'word' : 'role'}.
+      {imposterCount > 1 ? `${imposterCount} impostors` : 'One impostor'} this round{roundNote}.
     </p>
 
     <div class="player-grid">
@@ -99,7 +103,7 @@
     <button
       class="slip"
       class:peeking
-      class:imposter={peeking && isImposter}
+      class:imposter={peeking && isImposter && !undercover}
       onpointerdown={startPeek}
       onpointerup={endPeek}
       onpointercancel={endPeek}
@@ -111,7 +115,10 @@
     >
       {#if peeking}
         <span class="slip-category">{categoryName}</span>
-        {#if isImposter}
+        {#if undercover}
+          <span class="role">{slipWord}</span>
+          <span class="hint">Your word. Act natural</span>
+        {:else if isImposter}
           <span class="role">{imposterCount > 1 ? 'You’re an impostor' : 'You’re the impostor'}</span>
           {#if showHint}
             <span class="hint">Hint: {round.hint}</span>

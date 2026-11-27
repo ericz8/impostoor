@@ -1,6 +1,6 @@
 import { flushSync } from 'svelte'
 import { categories, type WordEntry } from './words'
-import { pickMany, speaksEarly, voteOutcome, type VoteOutcome } from './rules'
+import { chooseWord, pickMany, speaksEarly, voteOutcome, type VoteOutcome } from './rules'
 
 export type Screen = 'intro' | 'setup' | 'reveal' | 'play' | 'vote'
 
@@ -19,6 +19,8 @@ export interface Vote {
 export interface Round {
   word: string
   hint: string
+  /** Undercover round: impostors see this instead of a role and hint. */
+  decoy?: string | null
   categoryId: string
   imposters: string[]
   starter: string
@@ -37,6 +39,7 @@ interface SessionSnapshot {
   selectedCategories: string[]
   hintsOn: boolean
   blindVoting?: boolean
+  undercoverOn?: boolean
   imposterCount?: number
   usedWords: string[]
   round: Round | null
@@ -59,10 +62,6 @@ export const CUSTOM_ID = 'custom'
 
 export const MIN_PLAYERS = 3
 
-function pick<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)]
-}
-
 function readJSON<T>(storage: Storage, key: string): T | null {
   try {
     const raw = storage.getItem(key)
@@ -80,6 +79,8 @@ class GameState {
   hintsOn = $state(true)
   /** Players pass the phone to vote in secret instead of pointing. */
   blindVoting = $state(false)
+  /** Impostors get a close decoy word and are not told their role. */
+  undercoverOn = $state(false)
   /** Requested impostor count; clamped to what the lineup allows. */
   imposterCount = $state(1)
   usedWords: string[] = $state([])
@@ -140,6 +141,7 @@ class GameState {
       )
       this.hintsOn = session.hintsOn
       this.blindVoting = session.blindVoting ?? false
+      this.undercoverOn = session.undercoverOn ?? false
       this.imposterCount = session.imposterCount ?? 1
       this.usedWords = session.usedWords
       // Rounds saved before multi-impostor support have no `imposters` list.
@@ -165,6 +167,7 @@ class GameState {
       selectedCategories: this.selectedCategories,
       hintsOn: this.hintsOn,
       blindVoting: this.blindVoting,
+      undercoverOn: this.undercoverOn,
       imposterCount: this.imposterCount,
       usedWords: this.usedWords,
       round: this.round,
@@ -331,15 +334,17 @@ class GameState {
     }
   }
 
-  addCustomWord(rawWord: string, rawHint: string): string | null {
+  addCustomWord(rawWord: string, rawHint: string, rawDecoy = ''): string | null {
     const word = rawWord.trim().replace(/\s+/g, ' ')
     const hint = rawHint.trim()
+    const decoy = rawDecoy.trim().replace(/\s+/g, ' ')
     if (!word) return 'Enter a word first'
-    if (word.length > 40) return 'Keep words under 40 characters'
+    if (word.length > 40 || decoy.length > 40) return 'Keep words under 40 characters'
     if (this.customWords.some((w) => w.word.toLowerCase() === word.toLowerCase())) {
       return `“${word}” is already on your list`
     }
-    this.customWords.push({ word, hint })
+    if (decoy.toLowerCase() === word.toLowerCase()) return 'The decoy needs to be a different word'
+    this.customWords.push(decoy ? { word, hint, decoy } : { word, hint })
     return null
   }
 
@@ -352,11 +357,7 @@ class GameState {
   startGame() {
     if (!this.canStart) return
 
-    const pool = this.wordPool
-
-    // Avoid words already used this session, if any are left.
-    const fresh = pool.filter(({ entry }) => !this.usedWords.includes(entry.word))
-    const { entry, categoryId } = pick(fresh.length > 0 ? fresh : pool)
+    const { entry, categoryId, decoy } = chooseWord(this.wordPool, this.usedWords, this.undercoverOn)
 
     const imposters = pickMany(this.players, this.effectiveImposters)
     // Speaking order is set once everyone reveals: the phone gets passed
@@ -368,6 +369,7 @@ class GameState {
     this.round = {
       word: entry.word,
       hint: entry.hint,
+      decoy,
       categoryId,
       imposters,
       starter: '',

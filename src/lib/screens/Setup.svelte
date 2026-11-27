@@ -184,6 +184,14 @@
           </div>
           <input type="checkbox" class="switch" bind:checked={game.blindVoting} />
         </label>
+
+        <label class="setting">
+          <div class="setting-text">
+            <span class="setting-name">Undercover</span>
+            <span class="setting-note">Impostors get a similar word and don’t know they’re the impostor</span>
+          </div>
+          <input type="checkbox" class="switch" bind:checked={game.undercoverOn} />
+        </label>
       </div>
     </section>
 

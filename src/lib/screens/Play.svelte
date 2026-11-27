@@ -11,6 +11,7 @@
   const multiple = $derived(round.imposters.length > 1)
   const result = $derived(game.voteResult)
   const voting = $derived(game.blindVoting && !result)
+  const undercover = $derived(!!round.decoy)
 
   let wordShown = $state(false)
 </script>
@@ -36,7 +37,11 @@
           {round.imposters.length} impostors
         {/if}
       </p>
-      <p class="how">One word or phrase each about the secret word, then vote</p>
+      <p class="how">
+        {undercover
+          ? 'One word or phrase each about your word, then vote'
+          : 'One word or phrase each about the secret word, then vote'}
+      </p>
       <ol class="order" aria-label="Speaking order">
         {#each round.order as player, i (player)}
           <li>
@@ -76,7 +81,11 @@
         </div>
         <div>
           <dt><span class="dot imp" aria-hidden="true"></span>{multiple ? 'Impostors' : 'Impostor'}</dt>
-          <dd>Survive the vote, or get voted out and guess the secret word</dd>
+          <dd>
+            {undercover
+              ? 'Survive the vote, or get voted out and guess the crew’s word'
+              : 'Survive the vote, or get voted out and guess the secret word'}
+          </dd>
         </div>
       </dl>
     </section>
@@ -106,11 +115,26 @@
       <h2 id="check-title">Check a guess</h2>
       {#if wordShown}
         <div class="word-reveal">
-          <p class="the-word">{round.word}</p>
+          {#if undercover}
+            <dl class="word-pair">
+              <div>
+                <dt><span class="dot crew" aria-hidden="true"></span>Crew</dt>
+                <dd class="the-word">{round.word}</dd>
+              </div>
+              <div>
+                <dt><span class="dot imp" aria-hidden="true"></span>{multiple ? 'Impostors' : 'Impostor'}</dt>
+                <dd class="the-word">{round.decoy}</dd>
+              </div>
+            </dl>
+          {:else}
+            <p class="the-word">{round.word}</p>
+          {/if}
           <button class="btn btn-quiet" onclick={() => (wordShown = false)}>Hide</button>
         </div>
       {:else}
-        <button class="btn btn-ghost" onclick={() => (wordShown = true)}>Show the secret word</button>
+        <button class="btn btn-ghost" onclick={() => (wordShown = true)}>
+          {undercover ? 'Show both words' : 'Show the secret word'}
+        </button>
       {/if}
     </section>
   </div>
@@ -307,6 +331,28 @@
     letter-spacing: -0.02em;
     line-height: 1.1;
     overflow-wrap: anywhere;
+  }
+
+  .word-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .word-pair dt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--ink-2);
+    font-size: 0.8125rem;
+  }
+
+  .word-pair dd {
+    margin: 4px 0 0;
+    font-size: 1.5rem;
+    text-wrap: balance;
   }
 
   .winner-btns {
