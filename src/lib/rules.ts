@@ -93,3 +93,12 @@ export function chooseWord(
   const swap = pickOne(swaps)
   return { ...swap, decoy: usableDecoy(swap.entry) }
 }
+
+/**
+ * Whether the impostor hint can reach a round. Undercover rounds replace it with
+ * the decoy, so it only matters when some word in the pool has no decoy and the
+ * round may fall back to hint mode.
+ */
+export function hintCanApply(pool: PoolEntry[], undercover: boolean): boolean {
+  return !undercover || pool.some(({ entry }) => usableDecoy(entry) === null)
+}

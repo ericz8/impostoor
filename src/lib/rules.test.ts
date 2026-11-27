@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'bun:test'
-import { chooseWord, pickMany, speaksEarly, usableDecoy, voteOutcome, type PoolEntry } from './rules'
+import {
+  chooseWord,
+  hintCanApply,
+  pickMany,
+  speaksEarly,
+  usableDecoy,
+  voteOutcome,
+  type PoolEntry,
+} from './rules'
 import { categories } from './words'
 
 describe('speaksEarly', () => {
@@ -138,4 +146,20 @@ test('no two built-in words in a category are each other’s decoy', () => {
       expect(decoyOf.get(decoy), `${entry.word} / ${entry.decoy}`).not.toBe(entry.word.toLowerCase())
     }
   }
+})
+
+describe('hintCanApply', () => {
+  const e = (word: string, decoy?: string): PoolEntry => ({ entry: { word, hint: '', decoy }, categoryId: 'custom' })
+  test.each([
+    ['normal mode always uses hints', [e('Tea', 'Coffee')], false, true],
+    ['undercover with every word decoyed', [e('Tea', 'Coffee'), e('Mug', 'Cup')], true, false],
+    ['undercover with a custom word lacking a decoy', [e('Tea', 'Coffee'), e('Inside joke')], true, true],
+    ['undercover where a decoy only repeats the word', [e('Tea', ' tea ')], true, true],
+  ] as const)('%s', (_, pool, undercover, expected) => {
+    expect(hintCanApply([...pool], undercover)).toBe(expected)
+  })
+  test('built-in categories never fall back, so undercover makes the hint moot', () => {
+    const pool = categories.flatMap((c) => c.words.map((entry) => ({ entry, categoryId: c.id })))
+    expect(hintCanApply(pool, true)).toBe(false)
+  })
 })

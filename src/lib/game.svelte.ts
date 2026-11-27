@@ -1,6 +1,6 @@
 import { flushSync } from 'svelte'
 import { categories, type WordEntry } from './words'
-import { chooseWord, pickMany, speaksEarly, voteOutcome, type VoteOutcome } from './rules'
+import { chooseWord, hintCanApply, pickMany, speaksEarly, voteOutcome, type VoteOutcome } from './rules'
 
 export type Screen = 'intro' | 'setup' | 'reveal' | 'play' | 'vote'
 
@@ -117,6 +117,8 @@ class GameState {
     }
     return pool
   })
+
+  readonly hintApplies = $derived(hintCanApply(this.wordPool, this.undercoverOn))
 
   readonly canStart = $derived(this.players.length >= MIN_PLAYERS && this.wordPool.length > 0)
 

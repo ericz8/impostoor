@@ -177,12 +177,16 @@
           <input type="checkbox" class="switch" bind:checked={game.showImposterCount} />
         </label>
 
-        <label class="setting">
+        <label class="setting" class:inert-setting={!game.hintApplies}>
           <div class="setting-text">
             <span class="setting-name">Impostor hint</span>
-            <span class="setting-note">Only for an impostor who speaks first or second</span>
+            <span class="setting-note">
+              {game.hintApplies
+                ? 'Only for an impostor who speaks first or second'
+                : 'Undercover impostors get a decoy instead'}
+            </span>
           </div>
-          <input type="checkbox" class="switch" bind:checked={game.hintsOn} />
+          <input type="checkbox" class="switch" bind:checked={game.hintsOn} disabled={!game.hintApplies} />
         </label>
 
         <label class="setting">
@@ -417,6 +421,19 @@
   label.setting {
     cursor: pointer;
     padding-right: 16px;
+  }
+
+  label.setting.inert-setting {
+    cursor: default;
+  }
+
+  .inert-setting .setting-name {
+    color: var(--text-2);
+  }
+
+  .switch:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .setting-text {
