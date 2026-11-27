@@ -128,3 +128,14 @@ test('every built-in word has a decoy that is not a word of its own round', () =
     }
   }
 })
+
+test('no two built-in words in a category are each other’s decoy', () => {
+  // A mutual pair hands the same two words back reversed later in the session.
+  for (const category of categories) {
+    const decoyOf = new Map(category.words.map((e) => [e.word.toLowerCase(), e.decoy?.toLowerCase()]))
+    for (const entry of category.words) {
+      const decoy = entry.decoy!.toLowerCase()
+      expect(decoyOf.get(decoy), `${entry.word} / ${entry.decoy}`).not.toBe(entry.word.toLowerCase())
+    }
+  }
+})
