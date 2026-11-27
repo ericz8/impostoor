@@ -30,6 +30,11 @@
         <p>Point at who you think is faking it, or turn on blind voting to pass the phone and vote in secret. Vote out the impostor to win, unless they then guess the word. An impostor who survives the vote wins outright.</p>
       </li>
     </ol>
+
+    <section class="variant" aria-labelledby="undercover-title">
+      <h2 id="undercover-title">Undercover</h2>
+      <p>Turn it on in setup and impostors get a similar word instead, without being told. Listen for the clue that doesn’t quite fit, including your own.</p>
+    </section>
   </div>
 
   <div class="screen-footer">
@@ -87,9 +92,21 @@
     line-height: 1.4;
   }
 
-  .steps p {
+  .steps p,
+  .variant p {
     margin-top: 4px;
     color: var(--text-2);
     font-size: 0.9375rem;
+  }
+
+  .variant {
+    margin-top: 32px;
+    padding: 24px 0 0 44px;
+    box-shadow: inset 0 1px 0 var(--line);
+  }
+
+  .variant h2 {
+    font-size: 1.125rem;
+    line-height: 1.4;
   }
 </style>
