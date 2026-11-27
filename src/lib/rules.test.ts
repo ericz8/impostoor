@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { pickMany, speaksEarly, voteOutcome } from './rules'
+import { chooseWord, pickMany, speaksEarly, usableDecoy, voteOutcome, type PoolEntry } from './rules'
+import { categories } from './words'
 
 describe('speaksEarly', () => {
   // 5 players; `viewed` is who revealed before (or including) the player.
@@ -50,4 +51,80 @@ describe('voteOutcome', () => {
   test('no ballots votes nobody out', () => {
     expect(voteOutcome({}, false)).toEqual({ kind: 'none' })
   })
+})
+
+describe('chooseWord', () => {
+  const e = (word: string, categoryId: string, decoy?: string): PoolEntry => ({
+    entry: { word, hint: '', decoy },
+    categoryId,
+  })
+  // `random` returning 0 always takes the first candidate.
+  const first = () => 0
+
+  test.each([
+    ['normal mode ignores decoys', [e('Tea', 'food', 'Coffee')], [], false, 'Tea', null],
+    ['undercover uses the decoy', [e('Tea', 'food', 'Coffee')], [], true, 'Tea', 'Coffee'],
+    [
+      'skips used words',
+      [e('Tea', 'food', 'Coffee'), e('Pizza', 'food', 'Quesadilla')],
+      ['Tea'],
+      true,
+      'Pizza',
+      'Quesadilla',
+    ],
+    [
+      'reuses words once everything is used',
+      [e('Tea', 'food', 'Coffee')],
+      ['Tea'],
+      true,
+      'Tea',
+      'Coffee',
+    ],
+    [
+      'swaps a decoy-less word for one in the same category',
+      [e('Inside joke', 'custom'), e('Tea', 'food', 'Coffee'), e('Our dog', 'custom', 'Their cat')],
+      [],
+      true,
+      'Our dog',
+      'Their cat',
+    ],
+    [
+      'does not swap into another category, falls back to hints',
+      [e('Inside joke', 'custom'), e('Tea', 'food', 'Coffee')],
+      [],
+      true,
+      'Inside joke',
+      null,
+    ],
+    [
+      'treats a decoy equal to the word as missing',
+      [e('Tea', 'custom', ' tea '), e('Mug', 'custom', 'Cup')],
+      [],
+      true,
+      'Mug',
+      'Cup',
+    ],
+    [
+      'does not swap to a used word while fresh ones remain',
+      [e('Inside joke', 'custom'), e('Our dog', 'custom', 'Their cat')],
+      ['Our dog'],
+      true,
+      'Inside joke',
+      null,
+    ],
+  ] as const)('%s', (_, pool, used, undercover, word, decoy) => {
+    const choice = chooseWord([...pool], [...used], undercover, first)
+    expect(choice.entry.word).toBe(word)
+    expect(choice.decoy).toBe(decoy)
+  })
+})
+
+test('every built-in word has a decoy that is not a word of its own round', () => {
+  for (const category of categories) {
+    for (const entry of category.words) {
+      const decoy = usableDecoy(entry)
+      expect(decoy, entry.word).not.toBeNull()
+      expect(decoy!.toLowerCase(), entry.word).not.toBe(entry.word.toLowerCase())
+    }
+  }
 })
