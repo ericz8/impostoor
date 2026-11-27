@@ -21,6 +21,8 @@ export interface Round {
   hint: string
   /** Undercover round: impostors see this instead of a role and hint. */
   decoy?: string | null
+  /** False when the impostor count stays secret this round. */
+  countShown?: boolean
   categoryId: string
   imposters: string[]
   starter: string
@@ -40,6 +42,7 @@ interface SessionSnapshot {
   hintsOn: boolean
   blindVoting?: boolean
   undercoverOn?: boolean
+  showImposterCount?: boolean
   timerMinutes?: number
   imposterCount?: number
   usedWords: string[]
@@ -84,6 +87,8 @@ class GameState {
   blindVoting = $state(false)
   /** Impostors get a close decoy word and are not told their role. */
   undercoverOn = $state(false)
+  /** Whether the reveal screen says how many impostors there are. */
+  showImposterCount = $state(true)
   timerMinutes = $state(2)
   /** Requested impostor count; clamped to what the lineup allows. */
   imposterCount = $state(1)
@@ -146,6 +151,7 @@ class GameState {
       this.hintsOn = session.hintsOn
       this.blindVoting = session.blindVoting ?? false
       this.undercoverOn = session.undercoverOn ?? false
+      this.showImposterCount = session.showImposterCount ?? true
       if (TIMER_PRESETS.includes(session.timerMinutes ?? 0)) this.timerMinutes = session.timerMinutes!
       this.imposterCount = session.imposterCount ?? 1
       this.usedWords = session.usedWords
@@ -173,6 +179,7 @@ class GameState {
       hintsOn: this.hintsOn,
       blindVoting: this.blindVoting,
       undercoverOn: this.undercoverOn,
+      showImposterCount: this.showImposterCount,
       timerMinutes: this.timerMinutes,
       imposterCount: this.imposterCount,
       usedWords: this.usedWords,
@@ -376,6 +383,7 @@ class GameState {
       word: entry.word,
       hint: entry.hint,
       decoy,
+      countShown: this.showImposterCount,
       categoryId,
       imposters,
       starter: '',

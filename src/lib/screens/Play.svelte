@@ -9,7 +9,9 @@
 
   const round = $derived(game.round!)
   const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
-  const multiple = $derived(round.imposters.length > 1)
+  const countShown = $derived(round.countShown !== false)
+  // With the count secret, the wording stays plural so it gives nothing away.
+  const multiple = $derived(round.imposters.length > 1 || !countShown)
   const result = $derived(game.voteResult)
   const voting = $derived(game.blindVoting && !result)
   const undercover = $derived(!!round.decoy)
@@ -33,7 +35,7 @@
           <RotateCw size={18} strokeWidth={1.75} />
         </span>
         Then {round.clockwise ? 'clockwise' : 'counter-clockwise'}
-        {#if multiple}
+        {#if countShown && multiple}
           <span class="sep" aria-hidden="true"></span>
           {round.imposters.length} impostors
         {/if}

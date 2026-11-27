@@ -15,6 +15,8 @@
   const categoryName = $derived(getCategory(round.categoryId)?.name ?? 'Your words')
   const isImposter = $derived(selected !== null && game.isImposter(selected))
   const imposterCount = $derived(round.imposters.length)
+  // Rounds saved before the option existed always showed the count.
+  const countShown = $derived(round.countShown !== false)
   // Undercover slips look the same for everyone: impostors just get the decoy.
   const undercover = $derived(!!round.decoy)
   const slipWord = $derived(undercover && isImposter ? round.decoy : round.word)
@@ -68,7 +70,11 @@
     <h1 class="heading">Pass the phone around</h1>
     <p class="sub">
       Tap your name and hold to see your {undercover ? 'word' : 'role'}.
-      {imposterCount > 1 ? `${imposterCount} impostors` : 'One impostor'} this round{roundNote}.
+      {#if countShown}
+        {imposterCount > 1 ? `${imposterCount} impostors` : 'One impostor'} this round{roundNote}.
+      {:else}
+        Impostor count is secret{roundNote}.
+      {/if}
     </p>
 
     <div class="player-grid">
@@ -119,7 +125,7 @@
           <span class="role">{slipWord}</span>
           <span class="hint">Your word. Act natural</span>
         {:else if isImposter}
-          <span class="role">{imposterCount > 1 ? 'You’re an impostor' : 'You’re the impostor'}</span>
+          <span class="role">{imposterCount > 1 || !countShown ? 'You’re an impostor' : 'You’re the impostor'}</span>
           {#if showHint}
             <span class="hint">Hint: {round.hint}</span>
           {:else}

@@ -171,6 +171,14 @@
 
         <label class="setting">
           <div class="setting-text">
+            <span class="setting-name">Say how many</span>
+            <span class="setting-note">Off keeps the impostor count secret</span>
+          </div>
+          <input type="checkbox" class="switch" bind:checked={game.showImposterCount} />
+        </label>
+
+        <label class="setting">
+          <div class="setting-text">
             <span class="setting-name">Impostor hint</span>
             <span class="setting-note">Only for an impostor who speaks first or second</span>
           </div>
