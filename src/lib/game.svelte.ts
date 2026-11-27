@@ -40,6 +40,7 @@ interface SessionSnapshot {
   hintsOn: boolean
   blindVoting?: boolean
   undercoverOn?: boolean
+  timerMinutes?: number
   imposterCount?: number
   usedWords: string[]
   round: Round | null
@@ -62,6 +63,8 @@ export const CUSTOM_ID = 'custom'
 
 export const MIN_PLAYERS = 3
 
+export const TIMER_PRESETS = [1, 2, 3, 5]
+
 function readJSON<T>(storage: Storage, key: string): T | null {
   try {
     const raw = storage.getItem(key)
@@ -81,6 +84,7 @@ class GameState {
   blindVoting = $state(false)
   /** Impostors get a close decoy word and are not told their role. */
   undercoverOn = $state(false)
+  timerMinutes = $state(2)
   /** Requested impostor count; clamped to what the lineup allows. */
   imposterCount = $state(1)
   usedWords: string[] = $state([])
@@ -142,6 +146,7 @@ class GameState {
       this.hintsOn = session.hintsOn
       this.blindVoting = session.blindVoting ?? false
       this.undercoverOn = session.undercoverOn ?? false
+      if (TIMER_PRESETS.includes(session.timerMinutes ?? 0)) this.timerMinutes = session.timerMinutes!
       this.imposterCount = session.imposterCount ?? 1
       this.usedWords = session.usedWords
       // Rounds saved before multi-impostor support have no `imposters` list.
@@ -168,6 +173,7 @@ class GameState {
       hintsOn: this.hintsOn,
       blindVoting: this.blindVoting,
       undercoverOn: this.undercoverOn,
+      timerMinutes: this.timerMinutes,
       imposterCount: this.imposterCount,
       usedWords: this.usedWords,
       round: this.round,

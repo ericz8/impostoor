@@ -3,6 +3,7 @@
   import { game } from '../game.svelte'
   import { getCategory } from '../words'
   import Scoreboard from '../Scoreboard.svelte'
+  import DiscussionTimer from '../DiscussionTimer.svelte'
   import TopBar from '../TopBar.svelte'
   import CategoryIcon from '../CategoryIcon.svelte'
 
@@ -49,6 +50,11 @@
           </li>
         {/each}
       </ol>
+    </section>
+
+    <section class="block" aria-labelledby="timer-title">
+      <h2 id="timer-title">Discussion</h2>
+      <DiscussionTimer />
     </section>
 
     {#if result}
