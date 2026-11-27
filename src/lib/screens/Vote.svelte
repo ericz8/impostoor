@@ -14,7 +14,8 @@
   const cast = $derived(Object.keys(vote.ballots).length)
   const remaining = $derived(game.players.length - cast)
   const allCast = $derived(remaining === 0)
-  const multiple = $derived(round.imposters.length > 1)
+  // With the count secret, the wording stays plural so it gives nothing away.
+  const multiple = $derived(round.imposters.length > 1 || round.countShown === false)
   const choices = $derived(vote.candidates.filter((p) => p !== voter))
 
   function openBallot(player: string) {
@@ -56,7 +57,7 @@
         </p>
         <p class="next">
           {#if imposter}
-            One last chance: guess the secret word to steal the win.
+            One last chance: guess {round.decoy ? 'the crew’s word' : 'the secret word'} to steal the win.
           {:else}
             {multiple ? 'The impostors survive' : 'The impostor survives'} the vote.
           {/if}
